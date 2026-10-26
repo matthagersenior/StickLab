@@ -2,7 +2,7 @@
    No DOM, no timers, no random calls, no direct modification of physics bodies. */
 (function(root){'use strict';
 var personalities=['curious','cautious','helpful'],modes=['wander','help','rest'];
-function bounded(n,max){return Math.max(0,Math.min(max,Number.isFinite(n)?n:0))}
+function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
 function decide(group,hip,nearby,goal,tick,floor){
  var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,memory:memory};
@@ -30,7 +30,7 @@ function decide(group,hip,nearby,goal,tick,floor){
    if(wheel&&personality==='helpful'){result.activateMotorId=wheel.id;memory.interactions=Math.min(99,memory.interactions+1)}
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}
- if(obstacle&&result.direction&&Math.sign(obstacle.x-hip.x)===result.direction&&hip.y>floor-140)result.jump=true;
+ if(obstacle&&result.direction&&(obstacle.x>=hip.x?1:-1)===result.direction&&hip.y>floor-140)result.jump=true;
  if(hip.x<85)result.direction=1;else if(hip.x>2080)result.direction=-1;
  return result;
 }
