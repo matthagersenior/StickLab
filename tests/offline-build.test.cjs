@@ -37,7 +37,7 @@ test('two distributions reproduce exactly from source',()=>{
 
 test('installable game fetches fresh navigation first and keeps an offline fallback',()=>{
  const worker=read('sw.js');
- assert.match(worker,/CACHE='sticklab-v05-game-modes-20261026'/,'fix release must invalidate the old app cache');
+ assert.match(worker,/CACHE='sticklab-v051-game-modes-20261026'/,'fix release must invalidate the old app cache');
  assert.match(worker,/e\.request\.mode==='navigate'/,'navigation must use a distinct online-first policy');
  assert.match(worker,/fetch\(e\.request\)/,'navigation should request updated hosted HTML');
  assert.match(worker,/caches\.match\(e\.request\)/,'the game must still open while offline');
