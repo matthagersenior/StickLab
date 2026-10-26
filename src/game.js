@@ -138,6 +138,24 @@ function updateGameModes(){
  var status=$('gameModeStatus');if(status)status.textContent='Now playing: '+mode.name+' · '+mode.summary;
  updatePause();
 }
+function refreshPuzzlePicker(){
+ document.querySelectorAll('[data-picker-level]').forEach(function(button){
+  var index=+button.dataset.pickerLevel,locked=index>=unlocked;
+  button.disabled=locked;
+  var status=button.querySelector('.level-state');
+  if(status)status.textContent=locked?'LOCKED':(challenge&&challenge.index===index&&challenge.won?'SOLVED':'PLAY');
+ });
+ var label=$('puzzlePickerStatus');
+ if(label)label.textContent=unlocked>=Levels.levels.length?'All three physics levels are unlocked. Choose any level.':'Level '+unlocked+' is available. Complete it to unlock Level '+(unlocked+1)+'.';
+}
+function openPuzzlePicker(){
+ refreshPuzzlePicker();
+ var dialog=$('puzzlePicker');dialog.classList.remove('hidden');dialog.setAttribute('aria-hidden','false');
+ $('sidebar').classList.remove('open');
+}
+function closePuzzlePicker(){
+ var dialog=$('puzzlePicker');dialog.classList.add('hidden');dialog.setAttribute('aria-hidden','true');
+}
 function selectGameMode(which){
  var valid=GAME_MODES.some(function(mode){return mode.id===which});if(!valid)return false;
  if(which==='sandbox'){
@@ -153,9 +171,8 @@ function selectGameMode(which){
  if(gameMode==='sandbox'&&!gameReturn)gameReturn={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};
  if(challenge&&which!=='puzzles')exitChallenge();
  if(which==='puzzles'){
-  gameMode='puzzles';updateGameModes();updateChallenges();
-  var levels=$('challengeSection');if(levels&&levels.scrollIntoView)levels.scrollIntoView({block:'center'});
-  toast('Physics Puzzles · choose an unlocked level to start');
+  gameMode='puzzles';updateGameModes();updateChallenges();openPuzzlePicker();
+  toast('Choose an unlocked physics level to start');
  }else{
   if(which==='engineering')newWorld('engineering');
   else if(which==='chaos')newWorld('chaos');
@@ -163,7 +180,7 @@ function selectGameMode(which){
   gameMode=which;state.paused=false;updatePause();updateGameModes();updateChallenges();
   toast(GAME_MODES.filter(function(mode){return mode.id===which})[0].name+' · experiment freely');
  }
- if(isCompactLayout()&&which!=='puzzles')$('sidebar').classList.remove('open');
+ if(isCompactLayout())$('sidebar').classList.remove('open');
  return true;
 }
 function updateChallenges(){
@@ -177,7 +194,7 @@ function updateChallenges(){
 }
 function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;gameMode='puzzles';if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
 function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;gameMode='sandbox';updateGameModes();updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
-function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
+function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}refreshPuzzlePicker();state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
 function rotatedOffset(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0);return{x:x*c-y*s,y:x*s+y*c}}
 function toLocal(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0),dx=x-p.x,dy=y-p.y;return{x:dx*c+dy*s,y:-dx*s+dy*c}}
 function hingePoint(p,x,y){var r=rotatedOffset(p,x,y);return{x:p.x+r.x,y:p.y+r.y,rx:r.x,ry:r.y}}
@@ -418,7 +435,15 @@ function exportWorld(){download('StickLab-world.json','application/json',JSON.st
 function screenshot(){try{var a=document.createElement('a');a.download='StickLab-scene.png';a.href=canvas.toDataURL('image/png');a.click();toast('Scene image saved')}catch(e){toast('Could not save image on this device')}}
 function importFile(file){if(!file)return;if(file.size>1500000){toast('Scene file is too large');return}var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);assignWorld(d,true);toast('Scene imported successfully')}catch(e){toast('Invalid StickLab scene file')}};reader.onerror=function(){toast('File could not be read')};reader.readAsText(file)}
 function modal(open){$('modalWrap').classList.toggle('open',open)}
-function controls(){$('challengeAction').onclick=function(){var section=$('gameModeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'});toast('Choose a game type · your sandbox can be restored')};
+function controls(){
+ $('closePuzzlePicker').onclick=closePuzzlePicker;
+ $('backFromPuzzlePicker').onclick=function(){closePuzzlePicker();if(isCompactLayout())$('sidebar').classList.add('open');var section=$('gameModeSection');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'})};
+ $('puzzlePicker').addEventListener('click',function(e){if(e.target===this)closePuzzlePicker()});
+ document.querySelectorAll('[data-picker-level]').forEach(function(b){b.addEventListener('click',function(){
+  var index=+b.dataset.pickerLevel;if(index>=unlocked)return;
+  if(loadLevel(index)){closePuzzlePicker();$('sidebar').classList.remove('open')}
+ })});
+ $('challengeAction').onclick=function(){var section=$('gameModeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'});toast('Choose a game type · your sandbox can be restored')};
  document.querySelectorAll('[data-game]').forEach(function(b){b.addEventListener('click',function(){selectGameMode(b.dataset.game)})});$('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){selectGameMode('sandbox');$('sidebar').classList.remove('open')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){gameReturn=null;newWorld(b.dataset.scene);gameMode='sandbox';updateGameModes();updateChallenges();$('sidebar').classList.remove('open')})});
  $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25);toast('Zoom '+Math.round(cam.z*100)+'%')};$('zoomOut').onclick=function(){zoom(.8);toast('Zoom '+Math.round(cam.z*100)+'%')};$('recenter').onclick=function(){defaultCamera();toast('View centered · '+Math.round(cam.z*100)+'%')};
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
@@ -429,7 +454,7 @@ function controls(){$('challengeAction').onclick=function(){var section=$('gameM
  $('save').onclick=saveLocal;$('load').onclick=loadLocal;$('export').onclick=exportWorld;$('import').onclick=function(){$('fileInput').click()};$('fileInput').onchange=function(){importFile(this.files[0]);this.value=''};$('undo').onclick=undo;$('reset').onclick=function(){newWorld('empty');toast('Blank world ready')};$('snapshot').onclick=screenshot;
  $('help').onclick=function(){modal(true)};$('closeModal').onclick=function(){modal(false)};$('startGame').onclick=function(){modal(false)};$('helpClose').onclick=function(){modal(false)};$('modalWrap').onclick=function(e){if(e.target===this)modal(false)};
  $('openMenu').onclick=function(){$('sidebar').classList.toggle('open')};
- window.addEventListener('keydown',function(e){var tag=e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;var k=e.key.toLowerCase();if(k>='1'&&k<='9'&&k.length===1){var ts=['grab','figure','box','ball','anchor','rope','spring','erase','hinge'];setTool(ts[+k-1]);return}if(k==='arrowleft'||k==='a'){state.keys.left=true;e.preventDefault()}else if(k==='arrowright'||k==='d'){state.keys.right=true;e.preventDefault()}else if(k==='arrowup'||k==='w'){state.keys.jump=true;e.preventDefault()}else if(k===' '){e.preventDefault();var p=findPart(state.selected);if(p&&p.group){state.keys.jump=true}else{state.paused=!state.paused;updatePause()}}else if(k==='p'){state.paused=!state.paused;updatePause()}else if(k==='.'){state.paused=true;simulate();updatePause()}else if(k==='delete'||k==='backspace'){erase(findPart(state.selected));e.preventDefault()}else if(k==='escape'){state.linkStart=null;state.linkPoint=null;modal(false);$('sidebar').classList.remove('open')}else if(k==='z'&&(e.ctrlKey||e.metaKey)){undo();e.preventDefault()}});
+ window.addEventListener('keydown',function(e){var tag=e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;var k=e.key.toLowerCase();if(k>='1'&&k<='9'&&k.length===1){var ts=['grab','figure','box','ball','anchor','rope','spring','erase','hinge'];setTool(ts[+k-1]);return}if(k==='arrowleft'||k==='a'){state.keys.left=true;e.preventDefault()}else if(k==='arrowright'||k==='d'){state.keys.right=true;e.preventDefault()}else if(k==='arrowup'||k==='w'){state.keys.jump=true;e.preventDefault()}else if(k===' '){e.preventDefault();var p=findPart(state.selected);if(p&&p.group){state.keys.jump=true}else{state.paused=!state.paused;updatePause()}}else if(k==='p'){state.paused=!state.paused;updatePause()}else if(k==='.'){state.paused=true;simulate();updatePause()}else if(k==='delete'||k==='backspace'){erase(findPart(state.selected));e.preventDefault()}else if(k==='escape'){state.linkStart=null;state.linkPoint=null;closePuzzlePicker();modal(false);$('sidebar').classList.remove('open')}else if(k==='z'&&(e.ctrlKey||e.metaKey)){undo();e.preventDefault()}});
  window.addEventListener('keyup',function(e){var k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')state.keys.left=false;if(k==='arrowright'||k==='d')state.keys.right=false;if(k==='arrowup'||k==='w')state.keys.jump=false});
  document.querySelectorAll('[data-hold]').forEach(function(b){
  function press(e){if(e&&e.preventDefault)e.preventDefault();if(!ensureControlledFigure())return;
