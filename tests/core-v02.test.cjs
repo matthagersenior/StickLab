@@ -16,7 +16,7 @@ test('spatial pairs agree with brute-force bounds over crowded scene',()=>{
 });
 test('v1 ragdoll and rope migrate without breaking node/link IDs',()=>{
  const input={format:'StickLab',version:1,world:{parts:[{id:1,kind:'joint',x:10,y:10,r:5,group:'f2'},{id:3,kind:'joint',x:15,y:10,r:5,group:'f2'},{id:4,kind:'anchor',x:15,y:5,r:9,fixed:true}],links:[{id:6,a:1,b:3,type:'bone',len:5},{id:7,a:3,b:4,type:'rope',len:8}],groups:[{id:'f2',nodes:[1,3],hip:1,head:3}]}};
- const out=core.normalizeScene(input);assert.equal(out.version,2);assert.equal(out.world.links[1].id,7);assert.deepEqual(out.world.groups[0].nodes,[1,3]);assert.equal(out.world.next,8);
+ const out=core.normalizeScene(input);assert.equal(out.version,3);assert.equal(out.world.links[1].id,7);assert.deepEqual(out.world.groups[0].nodes,[1,3]);assert.equal(out.world.next,8);
 });
 test('rejects bad versions, duplicate IDs, invalid references and nonfinite motion',()=>{
  const s=(parts,links=[])=>({format:'StickLab',version:2,world:{parts,links,groups:[]}});
