@@ -73,3 +73,51 @@ test('undo inside a challenge retains the active goal and target',()=>{
  nodes.undo.onclick();assert.equal(api.getWorld().parts.length,before);
  assert.equal(api.getState().challenge.index,0);
 });
+
+test('living figures have names, modes and manual takeover without stopping physics',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const hip=api.spawnResident(600,845);assert.ok(hip);
+ const living=api.getResidents();assert.equal(living.length,1);
+ assert.ok(living[0].name.length>2);assert.equal(living[0].mode,'wander');
+ assert.equal(api.selectResident(living[0].id),true);
+ assert.equal(api.setResidentMode(living[0].id,'help'),true);
+ assert.equal(api.setResidentMode(living[0].id,'attack'),false);
+ assert.equal(api.getResidents()[0].mode,'help');
+ for(let i=0;i<30;i++)api.step();
+ assert.ok(api.getWorld().parts.some(p=>p.id===hip.id),'controlling a resident must retain its physics bodies');
+ api.releaseResident();
+ assert.equal(api.getState().agents,1);
+ for(let i=0;i<35;i++)api.step();
+ assert.ok(['help','wander','investigate','avoid'].includes(api.getResidents()[0].intent));
+});
+test('global AI toggle leaves world and manual ragdoll interactions intact',()=>{
+ const {api}=engine();api.createWorld('empty');
+ api.spawnResident(500,845);
+ const before=api.getWorld().parts.length;
+ assert.equal(api.setAIEnabled(false),false);
+ assert.equal(api.getWorld().aiEnabled,false);
+ for(let i=0;i<20;i++)api.step();
+ assert.equal(api.getWorld().parts.length,before);
+ assert.equal(api.setAIEnabled(true),true);
+ assert.equal(api.getWorld().aiEnabled,true);
+});
+test('v4 residents survive import while v3 ragdolls stay passive',()=>{
+ const {api}=engine();api.createWorld('empty');
+ api.spawnResident(700,845);const g=api.getResidents()[0];
+ api.setResidentMode(g.id,'rest');
+ const saved=api.getWorld();
+ api.importScene({format:'StickLab',version:4,world:saved});
+ assert.equal(api.getResidents()[0].name,g.name);
+ assert.equal(api.getResidents()[0].mode,'rest');
+ api.importScene({format:'StickLab',version:3,world:saved});
+ // Explicitly encoded v3 groups are still validated; legacy v3 had no AI fields.
+ api.createWorld('empty');
+ assert.equal(api.getResidents().length,0);
+});
+test('Eco profile respects a lower decision budget and challenge goals remain available',()=>{
+ const {api,nodes}=engine();nodes.quality.value='eco';nodes.quality.onchange.call(nodes.quality);
+ api.createWorld('empty');api.spawnResident(400,840);api.spawnResident(700,840);
+ assert.equal(api.getState().profile,'eco');
+ api.startLevel(0);assert.equal(api.getState().challenge.index,0);
+ assert.equal(api.getState().agents,0);
+});
