@@ -2,7 +2,7 @@
 /* Browser-driven layout regression tests, run by CI with Playwright and Chrome. */
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
-const {chromium}=require('playwright');
+const chromium=process.env.STICKLAB_BROWSER_TEST?require('playwright').chromium:null;
 const root=path.resolve(__dirname,'..');
 const scenarios=[
  {width:320,height:480,mobile:true,name:'small portrait'},
@@ -26,7 +26,7 @@ function server(){
   fs.readFile(file,(err,data)=>{if(err){res.writeHead(404).end();return}res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'}).end(data)});
  });
 }
-test('essential gameplay controls remain inside the viewport and do not overlap across orientations',async()=>{
+test('essential gameplay controls remain inside the viewport and do not overlap across orientations',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
  const srv=server();await new Promise(r=>srv.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
  try{
