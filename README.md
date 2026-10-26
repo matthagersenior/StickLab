@@ -1,4 +1,6 @@
-# StickLab v0.5.0 — Five Ways to Play
+# StickLab v0.5.1 — Five Ways to Play
+
+**Physics Puzzle fix:** Selecting **Physics Puzzles** now opens a full-screen level chooser, showing unlocked levels immediately regardless of your sidebar scroll position. Tap **First Push** to begin Level 1, or Back to Games to cancel. [See v0.5.1 fix](docs/releases/v0.5.1-puzzle-picker.md).
 
 **Choose Your Game:** Tap **🎮 Games** in the top bar. Choose **Free Sandbox**, **Physics Puzzles**, **Engineering Lab**, **Ragdoll Chaos**, or **Living World**. Physics Puzzles has three optional levels; the others are distinct open-ended worlds using the same physics controls. Your Free Sandbox scene is kept temporarily when switching modes and is restored on return. [Details and limits](docs/releases/v0.5.0-game-modes.md).
 

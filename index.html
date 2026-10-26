@@ -126,6 +126,40 @@
  .top-actions .challenge-action{font-size:11px;white-space:nowrap;min-width:0}
  .game-card{min-height:64px}
 }
+
+/* Dedicated Physics Puzzle chooser: independent of sidebar scroll position. */
+.puzzle-picker{position:fixed;inset:0;z-index:40;display:flex;justify-content:center;align-items:center;background:#0b182acb;padding:calc(12px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px))}
+.puzzle-picker-panel{width:min(520px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;border-radius:18px;padding:clamp(16px,4vw,26px);background:#f8faf8;box-shadow:0 22px 80px #04132475;color:#18283a}
+.puzzle-picker-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.puzzle-picker-top h2{margin:0;font-size:clamp(19px,4vw,26px);line-height:1.15}
+.puzzle-picker-top p{font-size:13px;color:#526777;line-height:1.45;margin:7px 0 14px}
+.puzzle-picker-top .puzzle-eyebrow{font-size:10px;color:#197d67;font-weight:850;letter-spacing:1.3px;margin:0 0 6px}
+.puzzle-picker-close{flex:0 0 44px;width:44px;height:44px;border-radius:11px;background:#e9efed;border:1px solid #d5e1da;color:#233b47;font-size:26px}
+.puzzle-picker-levels{display:grid;gap:9px}
+.puzzle-picker-level{width:100%;min-height:75px;display:flex;gap:12px;align-items:center;text-align:left;padding:12px;border:2px solid #b0d9c9;border-radius:12px;background:#effbf3;color:#172e36;cursor:pointer;touch-action:manipulation}
+.puzzle-picker-level:focus-visible{outline:3px solid #ffac5a;outline-offset:2px}
+.puzzle-picker-level .level-marker{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:11px;background:#c8efe1;color:#19624c;font-size:17px;font-weight:850}
+.puzzle-picker-level>span:nth-child(2){flex:1;min-width:0}
+.puzzle-picker-level strong{display:block;font-size:15px}
+.puzzle-picker-level small{display:block;font-size:12px;line-height:1.4;color:#586e74;margin-top:3px}
+.puzzle-picker-level .level-state{font-size:11px;letter-spacing:.3px;color:#157654;white-space:nowrap}
+.puzzle-picker-level[disabled]{cursor:not-allowed;border-color:#e1e7e6;background:#f1f3f3;opacity:.76}
+.puzzle-picker-level[disabled] .level-marker{background:#dfe5e4;color:#617479}
+.puzzle-picker-level[disabled] .level-state{color:#758486}
+#puzzlePickerStatus{font-size:12px;color:#49635a;margin:12px 0;line-height:1.5}
+.puzzle-picker-back{width:100%;min-height:44px;border-radius:10px;border:1px solid #d2ded9;background:white;color:#38525b;font-size:13px;font-weight:750}
+@media (max-height:480px) and (orientation:landscape){
+ .puzzle-picker{align-items:stretch;padding:6px calc(8px + env(safe-area-inset-right,0px)) 6px calc(8px + env(safe-area-inset-left,0px))}
+ .puzzle-picker-panel{width:min(680px,100%);padding:10px 16px}
+ .puzzle-picker-top p{margin:3px 0 7px}
+ .puzzle-picker-levels{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .puzzle-picker-level{min-height:66px;padding:7px;gap:5px;flex-wrap:wrap}
+ .puzzle-picker-level .level-marker{width:28px;height:28px;flex:0 0 28px;font-size:11px}
+ .puzzle-picker-level strong{font-size:12px}
+ .puzzle-picker-level small{font-size:10px}
+ .puzzle-picker-level .level-state{font-size:10px}
+ #puzzlePickerStatus{margin:7px 0}
+}
 </style><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="./icon.svg"></head>
 <body><div class="app">
 <aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll">
@@ -155,7 +189,7 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.0</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.1</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
@@ -164,7 +198,21 @@
 <div class="status"><div class="hint" id="hint"><b>Grab &amp; play.</b> Drag objects, or choose a tool to create something.</div><div class="counter"><div>OBJECTS <span id="objectCount">0</span></div><div>FPS <span id="fps">60</span></div></div></div>
 <div class="controlpad" id="controlpad" role="group" aria-label="Figure movement controls"><span class="control-label" id="controlHint" role="status">Arrows select a figure</span><button type="button" data-hold="left" aria-label="Select figure and move left">◀</button><button type="button" data-hold="jump" aria-label="Select figure and jump">↑</button><button type="button" data-hold="right" aria-label="Select figure and move right">▶</button></div>
 <div class="mobiletools" id="mobileTools"><button data-tool="grab" class="active"><em>↖</em>Grab</button><button data-tool="figure"><em>♙</em>Ragdoll</button><button data-tool="living"><em>☺</em>Resident</button><button data-tool="box"><em>▣</em>Box</button><button data-tool="ball"><em>●</em>Ball</button><button data-tool="anchor"><em>⊕</em>Pin</button><button data-tool="rope"><em>⌁</em>Rope</button><button data-tool="spring"><em>〽</em>Spring</button><button data-tool="hinge"><em>⚙</em>Hinge</button><button data-tool="detach"><em>✂</em>Detach</button><button data-tool="wheel"><em>◉</em>Wheel</button><button data-tool="cart"><em>▰</em>Cart</button><button data-tool="motor"><em>⚡</em>Motor</button><button data-tool="erase"><em>⌫</em>Erase</button></div>
-<div id="modalWrap" class="modalwrap" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" id="closeModal" aria-label="Close">×</button><h2 id="modalTitle">Welcome to StickLab</h2><p>Build a little world. Watch its physics. Then see what happens when you interfere.</p><ul><li><b>Grab:</b> drag figures, objects or empty space to pan.</li><li><b>Build:</b> place boxes, balls, anchors and articulated stick figures.</li><li><b>Connect:</b> tap two objects with Rope or Spring selected. Anchors make fixed suspension points.</li><li><b>Live:</b> place a Resident to explore, investigate, avoid hazards and help with experiments. Select one using Grab to take over, then Release to resume its decisions.</li><li><b>Play:</b> tap a stick figure in Grab mode; move with A/D or arrows, jump with W/↑/space. On touch, use the on-screen buttons.</li><li><b>Tools:</b> keys 1–8 switch tools. Scroll to zoom. Space pauses when no figure is being controlled.</li><li><b>Game Modes:</b> use the visible 🎮 Games button to choose Sandbox, Physics Puzzles, Engineering, Ragdoll Chaos or Living World. These are different starting worlds with the same physics tools.</li><li><b>Optional levels:</b> choose Physics Puzzles, then pick a level. Move the blue ball into the green goal, then return to your preserved sandbox whenever you like.</li><li><b>Keep it:</b> Save/Load use device storage; Export/Import transfer scenes between devices.</li></ul><div class="modalactions"><button id="startGame">Start experimenting</button><button class="secondary" id="helpClose">Close</button></div></section></div>
+<section id="puzzlePicker" class="puzzle-picker hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="puzzlePickerTitle">
+<div class="puzzle-picker-panel">
+<div class="puzzle-picker-top">
+<div><p class="puzzle-eyebrow">PHYSICS CHALLENGES · OPTIONAL</p><h2 id="puzzlePickerTitle">Choose a physics level</h2><p>Get the blue ball into the green goal using anything you build. Each solved level unlocks the next.</p></div>
+<button id="closePuzzlePicker" type="button" class="puzzle-picker-close" aria-label="Close level selector">×</button>
+</div>
+<div class="puzzle-picker-levels">
+<button type="button" data-picker-level="0" class="puzzle-picker-level"><span class="level-marker">01</span><span><strong>First Push</strong><small>Move the ball across the floor.</small></span><b class="level-state">PLAY</b></button>
+<button type="button" data-picker-level="1" class="puzzle-picker-level"><span class="level-marker">02</span><span><strong>Bridge the Gap</strong><small>Build a way off the raised platform.</small></span><b class="level-state">LOCKED</b></button>
+<button type="button" data-picker-level="2" class="puzzle-picker-level"><span class="level-marker">03</span><span><strong>Over the Wall</strong><small>Find a solution beyond the wall.</small></span><b class="level-state">LOCKED</b></button>
+</div>
+<p id="puzzlePickerStatus" role="status" aria-live="polite">Level 1 is ready. Finish it to unlock Level 2.</p>
+<button id="backFromPuzzlePicker" type="button" class="puzzle-picker-back">← Back to Games</button>
+</div>
+</section><div id="modalWrap" class="modalwrap" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" id="closeModal" aria-label="Close">×</button><h2 id="modalTitle">Welcome to StickLab</h2><p>Build a little world. Watch its physics. Then see what happens when you interfere.</p><ul><li><b>Grab:</b> drag figures, objects or empty space to pan.</li><li><b>Build:</b> place boxes, balls, anchors and articulated stick figures.</li><li><b>Connect:</b> tap two objects with Rope or Spring selected. Anchors make fixed suspension points.</li><li><b>Live:</b> place a Resident to explore, investigate, avoid hazards and help with experiments. Select one using Grab to take over, then Release to resume its decisions.</li><li><b>Play:</b> tap a stick figure in Grab mode; move with A/D or arrows, jump with W/↑/space. On touch, use the on-screen buttons.</li><li><b>Tools:</b> keys 1–8 switch tools. Scroll to zoom. Space pauses when no figure is being controlled.</li><li><b>Game Modes:</b> use the visible 🎮 Games button to choose Sandbox, Physics Puzzles, Engineering, Ragdoll Chaos or Living World. These are different starting worlds with the same physics tools.</li><li><b>Optional levels:</b> choose Physics Puzzles, then pick a level. Move the blue ball into the green goal, then return to your preserved sandbox whenever you like.</li><li><b>Keep it:</b> Save/Load use device storage; Export/Import transfer scenes between devices.</li></ul><div class="modalactions"><button id="startGame">Start experimenting</button><button class="secondary" id="helpClose">Close</button></div></section></div>
 </main></div><script>/* StickLab v0.2 simulation utilities — dependency-free UMD for browsers and tests. */
 (function(root){'use strict';
 function finite(n){return typeof n==='number'&&isFinite(n)}
@@ -474,6 +522,24 @@ function updateGameModes(){
  var status=$('gameModeStatus');if(status)status.textContent='Now playing: '+mode.name+' · '+mode.summary;
  updatePause();
 }
+function refreshPuzzlePicker(){
+ document.querySelectorAll('[data-picker-level]').forEach(function(button){
+  var index=+button.dataset.pickerLevel,locked=index>=unlocked;
+  button.disabled=locked;
+  var status=button.querySelector('.level-state');
+  if(status)status.textContent=locked?'LOCKED':(challenge&&challenge.index===index&&challenge.won?'SOLVED':'PLAY');
+ });
+ var label=$('puzzlePickerStatus');
+ if(label)label.textContent=unlocked>=Levels.levels.length?'All three physics levels are unlocked. Choose any level.':'Level '+unlocked+' is available. Complete it to unlock Level '+(unlocked+1)+'.';
+}
+function openPuzzlePicker(){
+ refreshPuzzlePicker();
+ var dialog=$('puzzlePicker');dialog.classList.remove('hidden');dialog.setAttribute('aria-hidden','false');
+ $('sidebar').classList.remove('open');
+}
+function closePuzzlePicker(){
+ var dialog=$('puzzlePicker');dialog.classList.add('hidden');dialog.setAttribute('aria-hidden','true');
+}
 function selectGameMode(which){
  var valid=GAME_MODES.some(function(mode){return mode.id===which});if(!valid)return false;
  if(which==='sandbox'){
@@ -489,9 +555,8 @@ function selectGameMode(which){
  if(gameMode==='sandbox'&&!gameReturn)gameReturn={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};
  if(challenge&&which!=='puzzles')exitChallenge();
  if(which==='puzzles'){
-  gameMode='puzzles';updateGameModes();updateChallenges();
-  var levels=$('challengeSection');if(levels&&levels.scrollIntoView)levels.scrollIntoView({block:'center'});
-  toast('Physics Puzzles · choose an unlocked level to start');
+  gameMode='puzzles';updateGameModes();updateChallenges();openPuzzlePicker();
+  toast('Choose an unlocked physics level to start');
  }else{
   if(which==='engineering')newWorld('engineering');
   else if(which==='chaos')newWorld('chaos');
@@ -499,7 +564,7 @@ function selectGameMode(which){
   gameMode=which;state.paused=false;updatePause();updateGameModes();updateChallenges();
   toast(GAME_MODES.filter(function(mode){return mode.id===which})[0].name+' · experiment freely');
  }
- if(isCompactLayout()&&which!=='puzzles')$('sidebar').classList.remove('open');
+ if(isCompactLayout())$('sidebar').classList.remove('open');
  return true;
 }
 function updateChallenges(){
@@ -513,7 +578,7 @@ function updateChallenges(){
 }
 function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;gameMode='puzzles';if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
 function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;gameMode='sandbox';updateGameModes();updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
-function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
+function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}refreshPuzzlePicker();state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
 function rotatedOffset(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0);return{x:x*c-y*s,y:x*s+y*c}}
 function toLocal(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0),dx=x-p.x,dy=y-p.y;return{x:dx*c+dy*s,y:-dx*s+dy*c}}
 function hingePoint(p,x,y){var r=rotatedOffset(p,x,y);return{x:p.x+r.x,y:p.y+r.y,rx:r.x,ry:r.y}}
@@ -754,7 +819,15 @@ function exportWorld(){download('StickLab-world.json','application/json',JSON.st
 function screenshot(){try{var a=document.createElement('a');a.download='StickLab-scene.png';a.href=canvas.toDataURL('image/png');a.click();toast('Scene image saved')}catch(e){toast('Could not save image on this device')}}
 function importFile(file){if(!file)return;if(file.size>1500000){toast('Scene file is too large');return}var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);assignWorld(d,true);toast('Scene imported successfully')}catch(e){toast('Invalid StickLab scene file')}};reader.onerror=function(){toast('File could not be read')};reader.readAsText(file)}
 function modal(open){$('modalWrap').classList.toggle('open',open)}
-function controls(){$('challengeAction').onclick=function(){var section=$('gameModeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'});toast('Choose a game type · your sandbox can be restored')};
+function controls(){
+ $('closePuzzlePicker').onclick=closePuzzlePicker;
+ $('backFromPuzzlePicker').onclick=function(){closePuzzlePicker();if(isCompactLayout())$('sidebar').classList.add('open');var section=$('gameModeSection');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'})};
+ $('puzzlePicker').addEventListener('click',function(e){if(e.target===this)closePuzzlePicker()});
+ document.querySelectorAll('[data-picker-level]').forEach(function(b){b.addEventListener('click',function(){
+  var index=+b.dataset.pickerLevel;if(index>=unlocked)return;
+  if(loadLevel(index)){closePuzzlePicker();$('sidebar').classList.remove('open')}
+ })});
+ $('challengeAction').onclick=function(){var section=$('gameModeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'});toast('Choose a game type · your sandbox can be restored')};
  document.querySelectorAll('[data-game]').forEach(function(b){b.addEventListener('click',function(){selectGameMode(b.dataset.game)})});$('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){selectGameMode('sandbox');$('sidebar').classList.remove('open')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){gameReturn=null;newWorld(b.dataset.scene);gameMode='sandbox';updateGameModes();updateChallenges();$('sidebar').classList.remove('open')})});
  $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25);toast('Zoom '+Math.round(cam.z*100)+'%')};$('zoomOut').onclick=function(){zoom(.8);toast('Zoom '+Math.round(cam.z*100)+'%')};$('recenter').onclick=function(){defaultCamera();toast('View centered · '+Math.round(cam.z*100)+'%')};
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
@@ -765,7 +838,7 @@ function controls(){$('challengeAction').onclick=function(){var section=$('gameM
  $('save').onclick=saveLocal;$('load').onclick=loadLocal;$('export').onclick=exportWorld;$('import').onclick=function(){$('fileInput').click()};$('fileInput').onchange=function(){importFile(this.files[0]);this.value=''};$('undo').onclick=undo;$('reset').onclick=function(){newWorld('empty');toast('Blank world ready')};$('snapshot').onclick=screenshot;
  $('help').onclick=function(){modal(true)};$('closeModal').onclick=function(){modal(false)};$('startGame').onclick=function(){modal(false)};$('helpClose').onclick=function(){modal(false)};$('modalWrap').onclick=function(e){if(e.target===this)modal(false)};
  $('openMenu').onclick=function(){$('sidebar').classList.toggle('open')};
- window.addEventListener('keydown',function(e){var tag=e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;var k=e.key.toLowerCase();if(k>='1'&&k<='9'&&k.length===1){var ts=['grab','figure','box','ball','anchor','rope','spring','erase','hinge'];setTool(ts[+k-1]);return}if(k==='arrowleft'||k==='a'){state.keys.left=true;e.preventDefault()}else if(k==='arrowright'||k==='d'){state.keys.right=true;e.preventDefault()}else if(k==='arrowup'||k==='w'){state.keys.jump=true;e.preventDefault()}else if(k===' '){e.preventDefault();var p=findPart(state.selected);if(p&&p.group){state.keys.jump=true}else{state.paused=!state.paused;updatePause()}}else if(k==='p'){state.paused=!state.paused;updatePause()}else if(k==='.'){state.paused=true;simulate();updatePause()}else if(k==='delete'||k==='backspace'){erase(findPart(state.selected));e.preventDefault()}else if(k==='escape'){state.linkStart=null;state.linkPoint=null;modal(false);$('sidebar').classList.remove('open')}else if(k==='z'&&(e.ctrlKey||e.metaKey)){undo();e.preventDefault()}});
+ window.addEventListener('keydown',function(e){var tag=e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;var k=e.key.toLowerCase();if(k>='1'&&k<='9'&&k.length===1){var ts=['grab','figure','box','ball','anchor','rope','spring','erase','hinge'];setTool(ts[+k-1]);return}if(k==='arrowleft'||k==='a'){state.keys.left=true;e.preventDefault()}else if(k==='arrowright'||k==='d'){state.keys.right=true;e.preventDefault()}else if(k==='arrowup'||k==='w'){state.keys.jump=true;e.preventDefault()}else if(k===' '){e.preventDefault();var p=findPart(state.selected);if(p&&p.group){state.keys.jump=true}else{state.paused=!state.paused;updatePause()}}else if(k==='p'){state.paused=!state.paused;updatePause()}else if(k==='.'){state.paused=true;simulate();updatePause()}else if(k==='delete'||k==='backspace'){erase(findPart(state.selected));e.preventDefault()}else if(k==='escape'){state.linkStart=null;state.linkPoint=null;closePuzzlePicker();modal(false);$('sidebar').classList.remove('open')}else if(k==='z'&&(e.ctrlKey||e.metaKey)){undo();e.preventDefault()}});
  window.addEventListener('keyup',function(e){var k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')state.keys.left=false;if(k==='arrowright'||k==='d')state.keys.right=false;if(k==='arrowup'||k==='w')state.keys.jump=false});
  document.querySelectorAll('[data-hold]').forEach(function(b){
  function press(e){if(e&&e.preventDefault)e.preventDefault();if(!ensureControlledFigure())return;
