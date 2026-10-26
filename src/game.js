@@ -7,6 +7,7 @@ if(!Math.hypot)Math.hypot=function(){var s=0;for(var i=0;i<arguments.length;i++)
 if(!Number.isFinite)Number.isFinite=function(n){return typeof n==='number'&&isFinite(n)};
 if(!Number.isSafeInteger)Number.isSafeInteger=function(n){return Number.isFinite(n)&&Math.floor(n)===n&&Math.abs(n)<=9007199254740991};
 if(!Array.prototype.includes)Array.prototype.includes=function(x){return this.indexOf(x)!==-1};
+if(typeof NodeList!=='undefined'&&!NodeList.prototype.forEach)NodeList.prototype.forEach=Array.prototype.forEach;
 var Core=window.StickLabCore,Machines=window.StickLabMachines,Levels=window.StickLabLevels;if(!Core||!Machines||!Levels)throw Error('StickLab simulation modules were not loaded');
 var canvas=$('canvas'),ctx=canvas.getContext('2d'),stage=$('stage');
 var W=2200,H=1150,FLOOR=930,STEP=1/60;
