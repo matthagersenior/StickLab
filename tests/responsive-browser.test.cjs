@@ -89,3 +89,31 @@ test('same running touch session survives portrait-landscape-portrait rotation',
   await context.close();
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
 });
+
+test('real Android-sized touch toolbar places new Pins and detaches their rope without erasing anchors',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:360,height:800},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.evaluate(()=>window.StickLab.createWorld('empty'));
+  const touchWorld=async(x,y)=>{
+   const pt=await page.evaluate(({x,y})=>{const c=window.StickLab.getCamera(),r=document.querySelector('#canvas').getBoundingClientRect();return {x:r.left+r.width/2+(x-c.x)*c.z,y:r.top+r.height/2+(y-c.y)*c.z}},{x,y});
+   await page.touchscreen.tap(pt.x,pt.y);
+  };
+  await page.locator('.mobiletools [data-tool="anchor"]').click();
+  await touchWorld(760,590);await touchWorld(990,590);
+  assert.equal(await page.evaluate(()=>window.StickLab.getWorld().parts.filter(p=>p.kind==='anchor').length),2);
+  await page.locator('.mobiletools [data-tool="rope"]').click();
+  await touchWorld(760,590);await touchWorld(990,590);
+  assert.equal(await page.evaluate(()=>window.StickLab.getWorld().links.length),1,'new anchors should connect');
+  await page.locator('.mobiletools [data-tool="detach"]').click();
+  await touchWorld(875,590);
+  const state=await page.evaluate(()=>window.StickLab.getWorld());
+  assert.equal(state.links.length,0,'tap on rope should detach');
+  assert.equal(state.parts.length,2,'both anchors survive');
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
