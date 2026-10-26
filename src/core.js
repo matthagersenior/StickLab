@@ -1,0 +1,61 @@
+/* StickLab v0.2 simulation utilities — dependency-free UMD for browsers and tests. */
+(function(root){'use strict';
+function finite(n){return typeof n==='number'&&isFinite(n)}
+function integer(n){return finite(n)&&Math.floor(n)===n&&n>0&&n<=1000000000}
+function bounds(p){
+ var angle=p.kind==='box'?(p.angle||0):0,cos=Math.abs(Math.cos(angle)),sin=Math.abs(Math.sin(angle));
+ var rx=p.kind==='box'?cos*p.w/2+sin*p.h/2:p.r;
+ var ry=p.kind==='box'?sin*p.w/2+cos*p.h/2:p.r;
+ return {minX:p.x-rx,maxX:p.x+rx,minY:p.y-ry,maxY:p.y+ry};
+}
+function aabbOverlap(a,b){var x=bounds(a),y=bounds(b);return x.minX<=y.maxX&&x.maxX>=y.minX&&x.minY<=y.maxY&&x.maxY>=y.minY}
+function collisionPairs(parts,size){
+ size=size||96;var cells={},pairs={},out=[];
+ for(var i=0;i<parts.length;i++){
+  var r=bounds(parts[i]),left=Math.floor(r.minX/size),right=Math.floor(r.maxX/size),top=Math.floor(r.minY/size),bottom=Math.floor(r.maxY/size);
+  for(var x=left;x<=right;x++)for(var y=top;y<=bottom;y++){
+   var key=x+','+y,other=cells[key]||(cells[key]=[]);
+   for(var k=0;k<other.length;k++){
+    var j=other[k],pk=j+':'+i;
+    if(!pairs[pk]&&aabbOverlap(parts[j],parts[i])){pairs[pk]=true;out.push([j,i])}
+   }
+   other.push(i);
+  }
+ }
+ out.sort(function(a,b){return a[0]-b[0]||a[1]-b[1]});return out;
+}
+function normalizeScene(input){
+ if(!input||typeof input!=='object')throw Error('Missing StickLab scene');
+ var wrapper=input.world?input:{format:'StickLab',version:1,world:input};
+ if(wrapper.format!=='StickLab'||(wrapper.version!==1&&wrapper.version!==2))throw Error('Unsupported StickLab version');
+ var world=wrapper.world;
+ if(!world||!Array.isArray(world.parts)||!Array.isArray(world.links)||!Array.isArray(world.groups)||world.parts.length>350||world.links.length>800||world.groups.length>100)throw Error('Invalid world arrays');
+ var ids={},taken={},maxId=0;
+ var parts=world.parts.map(function(p){
+  if(!p||!integer(p.id)||taken[p.id]||['joint','box','ball','anchor'].indexOf(p.kind)<0||!finite(p.x)||!finite(p.y)||Math.abs(p.x)>5000||Math.abs(p.y)>5000)throw Error('Invalid body');
+  if(p.px!==undefined&&!finite(p.px)||p.py!==undefined&&!finite(p.py)||p.angle!==undefined&&!finite(p.angle)||p.pa!==undefined&&!finite(p.pa))throw Error('Invalid body motion');
+  if(p.kind==='box'&&(!finite(p.w)||!finite(p.h)||p.w<5||p.h<5||p.w>300||p.h>300)||p.kind!=='box'&&(!finite(p.r)||p.r<1||p.r>100))throw Error('Invalid body geometry');
+  if(p.angle!==undefined&&Math.abs(p.angle)>100000||p.pa!==undefined&&Math.abs(p.pa)>100000)throw Error('Invalid rotation');
+  ids[p.id]=p;taken[p.id]=1;maxId=Math.max(maxId,p.id);
+  return {id:p.id,kind:p.kind,x:p.x,y:p.y,px:p.px===undefined?p.x:p.px,py:p.py===undefined?p.y:p.py,w:p.kind==='box'?p.w:0,h:p.kind==='box'?p.h:0,r:p.kind==='box'?0:p.r,angle:p.angle||0,pa:p.pa===undefined?(p.angle||0):p.pa,fixed:!!p.fixed,group:p.group||null,color:typeof p.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#182a3b'};
+ });
+ var links=world.links.map(function(l){
+  if(!l||!integer(l.id)||taken[l.id]||!ids[l.a]||!ids[l.b]||l.a===l.b||['bone','brace','rope','spring','hinge'].indexOf(l.type)<0||!finite(l.len)||l.len<0||l.len>10000)throw Error('Invalid link');
+  if(l.k!==undefined&&(!finite(l.k)||l.k<0||l.k>1))throw Error('Invalid stiffness');
+  if(l.type==='hinge'&&[l.ax,l.ay,l.bx,l.by].some(function(v){return !finite(v)||Math.abs(v)>500}))throw Error('Invalid hinge offset');
+  taken[l.id]=1;maxId=Math.max(maxId,l.id);
+  return {id:l.id,a:l.a,b:l.b,type:l.type,len:l.len,k:l.k===undefined?1:l.k,ax:l.type==='hinge'?l.ax:0,ay:l.type==='hinge'?l.ay:0,bx:l.type==='hinge'?l.bx:0,by:l.type==='hinge'?l.by:0};
+ });
+ var groups=world.groups.map(function(g){
+  if(!g||typeof g.id!=='string'||!/^f[0-9]+$/.test(g.id)||!Array.isArray(g.nodes)||!g.nodes.length||g.nodes.length>30||!integer(g.hip)||!integer(g.head)||g.nodes.indexOf(g.hip)<0||g.nodes.indexOf(g.head)<0)throw Error('Invalid ragdoll group');
+  var visited={};g.nodes.forEach(function(id){if(visited[id]||!ids[id]||ids[id].group!==g.id)throw Error('Invalid ragdoll node');visited[id]=1});
+  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true};
+ });
+ parts.forEach(function(p){if(p.group&&!groups.some(function(g){return g.id===p.group&&g.nodes.indexOf(p.id)>=0}))throw Error('Orphan ragdoll body')});
+ var next=integer(world.next)&&world.next>maxId?world.next:maxId+1;
+ return {format:'StickLab',version:2,world:{parts:parts,links:links,groups:groups,next:next,title:typeof world.title==='string'?world.title.slice(0,50):'Imported World'}};
+}
+var api={bounds:bounds,aabbOverlap:aabbOverlap,collisionPairs:collisionPairs,normalizeScene:normalizeScene};
+if(typeof module!=='undefined'&&module.exports)module.exports=api;
+if(root)root.StickLabCore=api;
+})(typeof window!=='undefined'?window:null);
