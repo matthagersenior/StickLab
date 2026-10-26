@@ -179,9 +179,9 @@ test('Game Types selector works in Android portrait and landscape and restores t
   await page.locator('#challengeAction').click();
   await page.locator('[data-game="puzzles"]').click();
   assert.equal(await page.evaluate(()=>window.StickLab.getState().gameMode),'puzzles');
-  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),true,'keep picker available until choosing a puzzle');
+  assert.equal(await page.locator('#puzzlePicker').isVisible(),true,'open an obvious level chooser instead of relying on menu scroll');
   assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge),null);
-  await page.locator('[data-level="0"]').click();
+  await page.locator('[data-picker-level="0"]').click();
   assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge.index),0);
   await page.locator('#challengeAction').click();
   await page.locator('[data-game="sandbox"]').click();
@@ -192,4 +192,34 @@ test('Game Types selector works in Android portrait and landscape and restores t
   assert.deepEqual(errors,[]);
   await ctx.close();
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
+
+test('physics puzzle selection shows a usable level chooser even when sidebar is scrolled to the very bottom', {skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:360,height:800},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('#challengeAction').click();
+  await page.locator('.side-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight});
+  const scrolled=await page.locator('.side-scroll').evaluate(el=>el.scrollTop);
+  assert.ok(scrolled>400,'reproduce a menu opened down at World Management');
+  // Clicking the mode is deliberate, even when it is above the current scroll position.
+  await page.locator('[data-game="puzzles"]').click();
+  assert.equal(await page.locator('#puzzlePicker').isVisible(),true,'level picker must be visible regardless of sidebar scroll');
+  assert.match(await page.locator('#puzzlePicker').textContent(),/Choose.*level|Physics.*level/i);
+  const first=page.locator('[data-picker-level="0"]');
+  assert.equal(await first.isEnabled(),true);
+  assert.equal(await page.locator('[data-picker-level="1"]').isDisabled(),true);
+  const r=await first.boundingBox();
+  assert.ok(r&&r.y>=0&&r.y+r.height<=800,'level 1 must be reachable without more scrolling: '+JSON.stringify(r));
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge),null,'selection alone must not start a level');
+  await first.click();
+  assert.equal(await page.locator('#puzzlePicker').isVisible(),false);
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge.index),0);
+  assert.match(await page.locator('#missionObjective').textContent(),/blue.*green.*goal/i);
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
