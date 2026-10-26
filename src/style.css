@@ -108,3 +108,20 @@
 @media (max-height:620px) and (pointer:coarse),(max-height:620px) and (max-width:690px){
  .mission-objective{display:none}
 }
+
+/* Real game-type selection: readable in the narrow Android drawer and on desktop. */
+#gameModeSection{scroll-margin-top:10px}
+.game-intro{margin:7px 0 12px;line-height:1.45}
+.game-grid{display:grid;grid-template-columns:1fr;gap:7px;margin:9px 0 13px}
+.game-card{width:100%;min-height:62px;display:flex;align-items:center;gap:11px;padding:9px 11px;text-align:left;background:#203144;color:#e4f3f4;border:1px solid #374c60;border-radius:12px;cursor:pointer;touch-action:manipulation;transition:background .1s,border-color .1s}
+.game-card .game-symbol{width:36px;min-width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:23px;background:#152536;border:1px solid #3d596a;border-radius:10px}
+.game-card b{display:block;font-size:13px;line-height:1.35}
+.game-card small{display:block;font-size:11px;color:#a4bacc;line-height:1.4;margin-top:2px}
+.game-card.active,.game-card[aria-pressed="true"]{background:#284a43;border:2px solid #83e0cb;padding:8px 10px}
+.game-card.active .game-symbol{background:#163a36;color:#b5fbe4}
+.game-card:focus-visible{outline:3px solid #ffad65;outline-offset:2px}
+.game-mode-status{font-size:11px;color:#b7e8d8;line-height:1.45;border-left:3px solid #83e0cb;padding:7px 10px;margin:0 0 17px;background:#182d35;border-radius:4px}
+@media (max-width:690px),(max-width:1180px) and (pointer:coarse) {
+ .top-actions .challenge-action{font-size:11px;white-space:nowrap;min-width:0}
+ .game-card{min-height:64px}
+}

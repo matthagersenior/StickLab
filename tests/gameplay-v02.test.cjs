@@ -274,7 +274,7 @@ test('optional challenge starts explicitly and returning preserves the sandbox c
  assert.equal(api.startLevel(0),true);
  assert.equal(api.getState().challenge.index,0);
  assert.match(nodes.missionObjective.textContent,/blue|ball|goal/i,'must show a visible goal instruction');
- assert.match(nodes.challengeAction.textContent,/level|challenge|goal/i,'mode switch must stay visible');
+ assert.match(nodes.challengeAction.textContent,/games/i,'game-type selector must remain visible during challenge');
  assert.equal(api.exitChallenge(),true,'player must be able to exit voluntarily');
  assert.equal(api.getState().challenge,null);
  assert.equal(api.getWorld().groups.length,saved.groups.length,'original sandbox inhabitants must return');
@@ -298,4 +298,43 @@ test('challenge directive updates on win and optional controls retain current mo
  assert.equal(api.getState().challenge.index,0);
  assert.equal(api.getWorld().parts.length,w.parts.length);
  assert.match(nodes.subTitle.textContent,/level|goal|ball|challenge/i);
+});
+
+test('five actual selectable game types switch to distinct playable worlds',()=>{
+ const {api}=engine();
+ assert.equal(api.getState().gameMode,'sandbox');
+ const modes=['sandbox','puzzles','engineering','chaos','living'];
+ for(const m of modes)assert.ok(api.getGameModes().some(x=>x.id===m),m+' must be listed');
+ assert.equal(api.selectGameMode('engineering'),true);
+ assert.equal(api.getState().gameMode,'engineering');
+ assert.ok(api.getWorld().parts.some(p=>p.kind==='wheel'),'engineering must spawn machine parts');
+ assert.ok(api.getWorld().links.some(l=>l.type==='hinge'),'engineering must provide connected mechanisms');
+ assert.equal(api.selectGameMode('chaos'),true);
+ assert.equal(api.getState().gameMode,'chaos');
+ assert.ok(api.getWorld().groups.length>=3,'ragdoll game must have figures');
+ assert.equal(api.selectGameMode('living'),true);
+ assert.equal(api.getState().gameMode,'living');
+ assert.ok(api.getResidents().length>=2,'living world must feature autonomous agents');
+});
+test('switching game types preserves custom Free Sandbox until explicitly returned',()=>{
+ const {api}=engine();api.createWorld('empty');api.spawnResident(775,845);
+ const original=api.getWorld(),camera=api.getCamera();
+ assert.equal(api.selectGameMode('engineering'),true);
+ assert.equal(api.selectGameMode('puzzles'),true);
+ assert.equal(api.getState().gameMode,'puzzles');
+ assert.equal(api.getState().challenge,null,'choosing puzzle game type must not silently start a level');
+ assert.equal(api.startLevel(0),true);
+ assert.equal(api.getState().gameMode,'puzzles');
+ assert.equal(api.selectGameMode('sandbox'),true);
+ assert.equal(api.getState().challenge,null);
+ assert.equal(api.getState().gameMode,'sandbox');
+ assert.equal(api.getWorld().parts.length,original.parts.length);
+ assert.equal(api.getWorld().groups.length,original.groups.length);
+ assert.equal(api.getWorld().title,original.title);
+ const restored=api.getCamera();assert.equal(restored.x,camera.x);assert.equal(restored.z,camera.z);
+});
+test('invalid game type is rejected without destroying current sandbox',()=>{
+ const {api}=engine(),original=JSON.stringify(api.getWorld());
+ assert.equal(api.selectGameMode('nonexistent'),false);
+ assert.equal(JSON.stringify(api.getWorld()),original);
 });
