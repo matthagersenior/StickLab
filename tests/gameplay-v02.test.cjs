@@ -4,7 +4,8 @@ const dir=path.join(__dirname,'..');
 function engine(pointer){
  const nodes={},noop=()=>{};
  function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},listeners:{},addEventListener:function(name,fn){this.listeners[name]=fn},setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
- const storage={};const context={document:{getElementById:el,querySelectorAll(){return[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
+ const holdButtons=['left','jump','right'].map(function(name){var btn=el('hold-'+name);btn.dataset.hold=name;return btn});
+ const storage={};const context={document:{getElementById:el,querySelectorAll(selector){return selector==='[data-hold]'?holdButtons:[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
  vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/inhabitants.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
  return{api:context.window.StickLab,nodes,storage};
 }
@@ -146,4 +147,44 @@ test('saving and reloading v4 slot restores resident mode and AI preference',()=
  assert.equal(api.getState().aiEnabled,false);
  assert.equal(api.getResidents()[0].name,resident.name);
  assert.equal(api.getResidents()[0].mode,'help');
+});
+
+test('mobile direction pad auto-selects a visible playable figure instead of silently doing nothing',()=>{
+ const {api,nodes}=engine(true);
+ assert.equal(api.getState().selected,null);
+ api.setTool('living');
+ const right=nodes['hold-right'];
+ assert.equal(typeof right.listeners.pointerdown,'function','right button must have a pointer handler');
+ right.listeners.pointerdown({pointerId:5,preventDefault(){}});
+ assert.ok(api.getState().selected,'right press should select an existing figure');
+ assert.equal(api.getState().tool,'grab','directional controls should enter control mode');
+ assert.equal(api.getState().keys.right,true);
+ const chosen=api.getWorld().parts.find(p=>p.id===api.getState().selected);
+ const x=chosen.x;
+ for(let i=0;i<50;i++)api.step();
+ assert.ok(api.getWorld().parts.find(p=>p.id===chosen.id).x>x+1,'right control should physically move the character');
+ right.listeners.pointerup({preventDefault(){}});
+ assert.equal(api.getState().keys.right,false);
+});
+test('empty scene tells the user how to activate movement controls',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ nodes['hold-left'].listeners.pointerdown({pointerId:6,preventDefault(){}});
+ assert.equal(api.getState().selected,null);
+ assert.match(nodes.notice.textContent,/figure|resident|ragdoll/i);
+});
+test('top-right camera controls change and report zoom, then restore the default view',()=>{
+ const {api,nodes}=engine(true);
+ const initial=api.getCamera();
+ nodes.zoomIn.onclick();
+ const zoomed=api.getCamera();
+ assert.ok(zoomed.z>initial.z,'+ must zoom in');
+ assert.match(nodes.cameraFeedback.textContent,/\d+%/,'camera scale must be visible');
+ nodes.zoomOut.onclick();
+ assert.ok(api.getCamera().z<zoomed.z,'- must zoom out');
+ nodes.zoomIn.onclick();
+ nodes.zoomIn.onclick();
+ nodes.recenter.onclick();
+ const reset=api.getCamera();
+ assert.ok(Math.abs(reset.z-initial.z)<1e-9);
+ assert.match(nodes.notice.textContent,/center|reset|view/i);
 });
