@@ -188,3 +188,23 @@ test('top-right camera controls change and report zoom, then restore the default
  assert.ok(Math.abs(reset.z-initial.z)<1e-9);
  assert.match(nodes.notice.textContent,/center|reset|view/i);
 });
+
+test('quick mobile jump tap is queued until the next physics step',()=>{
+ const {api,nodes}=engine(true);
+ nodes['hold-jump'].listeners.pointerdown({pointerId:11,preventDefault(){}});
+ nodes['hold-jump'].listeners.pointerup({preventDefault(){}});
+ assert.ok(api.getState().selected,'jump should auto-select a figure');
+ assert.equal(api.getState().keys.jump,true,'jump request must not disappear before simulation');
+ api.step();
+ assert.equal(api.getState().keys.jump,false,'physics consumes the queued jump');
+});
+test('top bar pause and step remain functional after mobile control setup',()=>{
+ const {api,nodes}=engine(true);
+ assert.equal(api.getState().paused,false);
+ nodes.pause.onclick();
+ assert.equal(api.getState().paused,true);
+ nodes.step.onclick();
+ assert.equal(api.getState().paused,true);
+ nodes.pause.onclick();
+ assert.equal(api.getState().paused,false);
+});
