@@ -25,3 +25,7 @@ jobs:
         run: node --test tests/*.test.cjs
       - name: Confirm deterministic generated files
         run: git diff --exit-code -- index.html StickLab-Offline.html
+      - name: Install browser test driver (test-only)
+        run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - name: Verify mobile portrait, landscape and desktop controls in Chrome
+        run: STICKLAB_BROWSER_TEST=1 node --test tests/responsive-browser.test.cjs
