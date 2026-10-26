@@ -34,3 +34,11 @@ test('two distributions reproduce exactly from source',()=>{
  .replace("<script>if((location.protocol==='https:'||location.hostname==='localhost')&&'serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){})}</script>",'');
  assert.equal(read('StickLab-Offline.html'),stripped);
 });
+
+test('installable game fetches fresh navigation first and keeps an offline fallback',()=>{
+ const worker=read('sw.js');
+ assert.match(worker,/CACHE='sticklab-v04-controls-20261026'/,'fix release must invalidate the old app cache');
+ assert.match(worker,/e\.request\.mode==='navigate'/,'navigation must use a distinct online-first policy');
+ assert.match(worker,/fetch\(e\.request\)/,'navigation should request updated hosted HTML');
+ assert.match(worker,/caches\.match\(e\.request\)/,'the game must still open while offline');
+});
