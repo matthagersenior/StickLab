@@ -141,7 +141,7 @@ test('AI-off setting persists when switching worlds while preserving sandbox obj
 test('saving and reloading v4 slot restores resident mode and AI preference',()=>{
  const {api,nodes,storage}=engine();api.createWorld('empty');api.spawnResident(800,850);
  const resident=api.getResidents()[0];api.setResidentMode(resident.id,'help');api.setAIEnabled(false);
- nodes.saveSlot.value='3';api.save();assert.equal(JSON.parse(storage.sticklab_scene_v4_3).version,4);
+ api.save();nodes.saveSlot.value='3';api.save();assert.equal(JSON.parse(storage.sticklab_scene_v4_3).version,4);
  api.createWorld('tower');api.load();
  assert.equal(api.getState().aiEnabled,false);
  assert.equal(api.getResidents()[0].name,resident.name);
