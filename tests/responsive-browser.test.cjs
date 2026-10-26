@@ -117,3 +117,37 @@ test('real Android-sized touch toolbar places new Pins and detaches their rope w
   await ctx.close();
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
 });
+
+test('optional physics levels are discoverable and sandbox resumes after a portrait-landscape challenge', {skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  assert.equal(await page.locator('#challengeAction').isVisible(),true,'Levels must be visible without opening tools');
+  await page.evaluate(()=>{window.StickLab.createWorld('empty');window.StickLab.spawnResident(770,840)});
+  const before=await page.evaluate(()=>window.StickLab.getWorld());
+  await page.locator('#challengeAction').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),true);
+  assert.match(await page.locator('#challengeStatus').textContent(),/optional|no win/i);
+  assert.equal(await page.locator('#worldTitle').textContent(),before.title);
+  await page.locator('#sidebar [data-level="0"]').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false);
+  assert.match(await page.locator('#missionObjective').textContent(),/blue.+green.+goal/i);
+  assert.match(await page.locator('#subTitle').textContent(),/level|ball.*goal/i);
+  assert.equal(await page.locator('#missionObjective').isVisible(),true);
+  await page.setViewportSize({width:844,height:390});await page.waitForTimeout(70);
+  assert.match(await page.locator('#subTitle').textContent(),/level|ball.*goal/i,'landscape still needs readable compact objective');
+  await page.locator('#challengeAction').click();
+  await page.locator('#freeSandbox').click();
+  const restored=await page.evaluate(()=>window.StickLab.getWorld());
+  assert.equal(restored.title,before.title);
+  assert.equal(restored.groups.length,before.groups.length);
+  assert.equal(restored.parts.length,before.parts.length);
+  assert.equal(await page.locator('#missionObjective').isVisible(),false);
+  assert.match(await page.locator('#subTitle').textContent(),/Free Sandbox/i);
+  assert.deepEqual(errors,[]);
+  await context.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
