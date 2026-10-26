@@ -1,4 +1,8 @@
-# StickLab v0.4.3 — Living Physics Sandbox
+# StickLab v0.4.4 — Living Physics Sandbox
+
+**Optional Levels:** The **🎯 Levels** button in the top action bar opens the Physics Challenges menu without interrupting Free Sandbox. Choose a level when you want an objective: move the blue target ball into the green goal and let it settle. Return to Free Sandbox at any time to restore your original scene and camera. [Full release notes](docs/releases/v0.4.4-optional-challenges.md).
+
+
 
 **Freeform connections:** The **Pin** tool creates new fixed anchor points anywhere in the world. Rope, Spring, and Hinge attach any two existing bodies. **Detach** removes one connection without deleting either object; tap a purple anchor with Detach to release its connectors and reuse it. Undo restores detached links. See [v0.4.3 release notes](docs/releases/v0.4.3-detach.md).
 
