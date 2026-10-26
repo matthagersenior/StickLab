@@ -5,3 +5,9 @@
 .scene-btn[data-level].active{background:#daeee5;border-color:#209f94;color:#16594d}
 #challengeStatus{min-height:2.5em;margin:8px 0;font-size:12px;line-height:1.45}
 #nextLevel:disabled{opacity:.4;cursor:not-allowed}
+
+/* Compact living-world controls scale down without decorative bitmaps. */
+.resident-toggle{display:flex;align-items:center;gap:9px;font-size:12px;line-height:1.35;margin:12px 0;color:#b8ddd0}
+.resident-toggle input{width:18px;height:18px;accent-color:#209f94;flex:none}
+#residentStatus{min-height:3em}
+#residentMode:disabled,#applyResidentMode:disabled,#releaseResident:disabled{opacity:.5;cursor:not-allowed}
