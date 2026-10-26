@@ -1,4 +1,8 @@
-# StickLab v0.4.2 — Living Physics Sandbox
+# StickLab v0.4.3 — Living Physics Sandbox
+
+**Freeform connections:** The **Pin** tool creates new fixed anchor points anywhere in the world. Rope, Spring, and Hinge attach any two existing bodies. **Detach** removes one connection without deleting either object; tap a purple anchor with Detach to release its connectors and reuse it. Undo restores detached links. See [v0.4.3 release notes](docs/releases/v0.4.3-detach.md).
+
+
 
 **Device layout:** StickLab supports responsive portrait/landscape layouts for phone and tablet touchscreens as well as desktop mouse/keyboard play. The title and action buttons stack on portrait phones, while short landscape screens use compact controls without covering each other. The game maintains a Canvas-compatible, offline-first fallback. See [the v0.4.2 responsive release notes](docs/releases/v0.4.2-responsive.md) for tested viewports and limitations.
 
