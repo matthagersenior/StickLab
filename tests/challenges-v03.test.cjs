@@ -37,7 +37,7 @@ test('v3 saves round trip wheel motor, material health, and breakable hinge stre
  {id:1,kind:'wheel',x:100,y:200,r:27,px:100,py:200,motor:true,motorPower:1.3,motorDirection:-1,material:'rubber',hp:65},
  {id:2,kind:'box',x:150,y:150,w:70,h:30,material:'steel',hp:180}
  ],links:[{id:3,type:'hinge',a:1,b:2,len:0,k:.9,ax:0,ay:0,bx:-15,by:5,breakable:true,strength:64}],groups:[]}};
- const w=Core.normalizeScene(s);assert.equal(w.version,3);assert.equal(w.world.parts[0].motor,true);assert.equal(w.world.parts[0].motorDirection,-1);assert.equal(w.world.parts[1].material,'steel');assert.equal(w.world.links[0].strength,64);
+ const w=Core.normalizeScene(s);assert.equal(w.version,4);assert.equal(w.world.parts[0].motor,true);assert.equal(w.world.parts[0].motorDirection,-1);assert.equal(w.world.parts[1].material,'steel');assert.equal(w.world.links[0].strength,64);
  const again=Core.normalizeScene(w);assert.deepEqual(again,w);
 });
 test('malformed v3 motor and fracture state is rejected',()=>{
