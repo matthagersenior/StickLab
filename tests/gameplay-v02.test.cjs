@@ -274,7 +274,7 @@ test('optional challenge starts explicitly and returning preserves the sandbox c
  assert.equal(api.startLevel(0),true);
  assert.equal(api.getState().challenge.index,0);
  assert.match(nodes.missionObjective.textContent,/blue|ball|goal/i,'must show a visible goal instruction');
- assert.match(nodes.challengeAction.textContent,/level|challenge|goal/i,'mode switch must stay visible');
+ assert.match(nodes.challengeAction.textContent,/games/i,'game-type selector must remain visible during challenge');
  assert.equal(api.exitChallenge(),true,'player must be able to exit voluntarily');
  assert.equal(api.getState().challenge,null);
  assert.equal(api.getWorld().groups.length,saved.groups.length,'original sandbox inhabitants must return');
