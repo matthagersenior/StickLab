@@ -264,3 +264,38 @@ test('Pin tool creates additional new fixed anchor points throughout the world',
  assert.ok(pts.every(p=>p.fixed));
  assert.ok(pts[0].id!==pts[1].id);
 });
+
+test('optional challenge starts explicitly and returning preserves the sandbox creation',()=>{
+ const {api,nodes}=engine(true);
+ api.createWorld('empty');
+ api.spawnResident(830,820);
+ const saved=api.getWorld(),before=api.getState();
+ assert.equal(api.getState().challenge,null);
+ assert.equal(api.startLevel(0),true);
+ assert.equal(api.getState().challenge.index,0);
+ assert.match(nodes.missionObjective.textContent,/blue|ball|goal/i,'must show a visible goal instruction');
+ assert.match(nodes.challengeAction.textContent,/level|challenge|goal/i,'mode switch must stay visible');
+ assert.equal(api.exitChallenge(),true,'player must be able to exit voluntarily');
+ assert.equal(api.getState().challenge,null);
+ assert.equal(api.getWorld().groups.length,saved.groups.length,'original sandbox inhabitants must return');
+ assert.equal(api.getWorld().parts.length,saved.parts.length,'all original physical pieces must return');
+ assert.equal(api.getWorld().title,saved.title);
+ assert.equal(api.getState().paused,before.paused);
+});
+test('level selection never changes free sandbox until player explicitly starts it',()=>{
+ const {api,nodes}=engine(true);api.createWorld('tower');
+ const snapshot=JSON.stringify(api.getWorld());
+ nodes.challengeAction.onclick();
+ assert.equal(JSON.stringify(api.getWorld()),snapshot,'opening level picker must not erase sandbox');
+ assert.equal(api.getState().challenge,null);
+ assert.match(nodes.challengeStatus.textContent,/optional|no win/i);
+});
+test('challenge directive updates on win and optional controls retain current mode on restart',()=>{
+ const {api,nodes}=engine(true);api.startLevel(0);
+ assert.match(nodes.missionObjective.textContent,/blue|ball|goal/i);
+ const w=api.getWorld();
+ api.startLevel(0);
+ assert.equal(api.getState().challenge.index,0);
+ assert.equal(api.getWorld().parts.length,w.parts.length);
+ assert.match(nodes.subTitle.textContent,/level|goal|ball|challenge/i);
+});
