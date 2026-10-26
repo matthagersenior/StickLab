@@ -253,13 +253,13 @@ function findPart(id){return partIndex[id]||null}
 function rebuildIndex(){partIndex={};for(var i=0;i<world.parts.length;i++)partIndex[world.parts[i].id]=world.parts[i]}
 function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].id===id)return world.groups[i];return null}
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
-function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps)}
+function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
  if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
- else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · AI active':' · AI off')+(g?' · passive ragdoll selected':'');
+ else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · '+Math.min(active,limits[profile].agents)+' thinking ('+profile+')':' · AI off')+(g?' · passive ragdoll selected':'');
  $('releaseResident').disabled=!g;
  $('residentMode').disabled=!g||!g.ai;
  $('applyResidentMode').disabled=!g||!g.ai;
@@ -275,7 +275,7 @@ function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width
 function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680))}
 function worldPoint(cx,cy){var r=canvas.getBoundingClientRect();return {x:cam.x+((cx-r.left)-width/2)/cam.z,y:cam.y+((cy-r.top)-height/2)/cam.z}}
 function zoom(factor,atX,atY){var before=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.z=Math.max(.24,Math.min(2.5,cam.z*factor));var after=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.x+=before.x-after.x;cam.y+=before.y-after.y}
-function newWorld(which){challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:true,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
+function newWorld(which){var keepAI=world.aiEnabled!==false;challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:keepAI,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
  if(which==='playground'){
  block(770,FLOOR-32,102,64,true,'#aebbb7');block(880,FLOOR-29,60,58,false,COLORS.orange);block(880,FLOOR-91,60,58,false,COLORS.orange);block(954,FLOOR-25,50,50,false,COLORS.orange);var hanging=figure(730,FLOOR-176);var hanger=anchor(730,370);if(hanging){var hangingGroup=findGroup(hanging.group);link(hanger,findPart(hangingGroup.head),'rope',270,.96)}resident(1100,FLOOR-76);
  ball(990,450,32,COLORS.aqua);ball(1090,FLOOR-28,28,COLORS.pink);var a=anchor(1210,248),b=ball(1250,440,29,COLORS.violet);link(a,b,'rope',205,.95);
