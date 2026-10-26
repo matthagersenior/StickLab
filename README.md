@@ -1,4 +1,6 @@
-# StickLab v0.4 — Living Physics Sandbox
+# StickLab v0.4.2 — Living Physics Sandbox
+
+**Device layout:** StickLab supports responsive portrait/landscape layouts for phone and tablet touchscreens as well as desktop mouse/keyboard play. The title and action buttons stack on portrait phones, while short landscape screens use compact controls without covering each other. The game maintains a Canvas-compatible, offline-first fallback. See [the v0.4.2 responsive release notes](docs/releases/v0.4.2-responsive.md) for tested viewports and limitations.
 
 **[Play in your browser](https://matthagersenior.github.io/StickLab/)** · **[Portable offline version](StickLab-Offline.html)** · [v0.4 release notes](docs/releases/v0.4.md)
 
