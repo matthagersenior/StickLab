@@ -1,10 +1,10 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const dir=path.join(__dirname,'..');
-function engine(){
+function engine(pointer){
  const nodes={},noop=()=>{};
- function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},addEventListener:noop,setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
- const storage={};const context={document:{getElementById:el,querySelectorAll(){return[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:false},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
+ function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},listeners:{},addEventListener:function(name,fn){this.listeners[name]=fn},setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
+ const storage={};const context={document:{getElementById:el,querySelectorAll(){return[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
  vm.createContext(context);for(const file of ['src/core.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
  return{api:context.window.StickLab,nodes,storage};
 }
@@ -24,4 +24,17 @@ test('hinged rotating beam keeps its connection under gravity',()=>{
  for(let i=0;i<160;i++)api.step();
  const box=api.getWorld().parts[1];assert.ok(Number.isFinite(box.angle));assert.ok(Math.abs(box.angle)>.03);
  assert.ok(Math.hypot(box.x-60*Math.cos(box.angle)-500,box.y-60*Math.sin(box.angle)-360)<12);
+});
+
+test('touch tools place only on tap release and never on two-finger gesture',()=>{
+ const {api,nodes}=engine(true),canvas=nodes.canvas;api.createWorld('empty');api.setTool('box');
+ const event=(type,id,x,y)=>({pointerType:'touch',pointerId:id,clientX:x,clientY:y,preventDefault(){}});
+ const send=(type,id,x,y)=>canvas.listeners[type](event(type,id,x,y));
+ const original=api.getState().parts;
+ send('pointerdown',1,220,260);assert.equal(api.getState().parts,original);
+ send('pointerup',1,220,260);assert.equal(api.getState().parts,original+1);
+ send('pointerdown',2,250,270);send('pointerdown',3,350,270);
+ send('pointermove',2,200,300);send('pointermove',3,380,300);
+ send('pointerup',2,200,300);send('pointerup',3,380,300);
+ assert.equal(api.getState().parts,original+1,'pinch should not spawn extra boxes');
 });
