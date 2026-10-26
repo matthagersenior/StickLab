@@ -151,3 +151,45 @@ test('optional physics levels are discoverable and sandbox resumes after a portr
   await context.close();
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
 });
+
+test('Game Types selector works in Android portrait and landscape and restores the original Sandbox',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  const world=await page.evaluate(()=>window.StickLab.getWorld());
+  await page.locator('#challengeAction').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),true);
+  assert.equal(await page.locator('[data-game]').count(),5);
+  assert.equal(await page.locator('#gameModeSection').isVisible(),true);
+  await page.locator('[data-game="engineering"]').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().gameMode),'engineering');
+  assert.ok(await page.evaluate(()=>window.StickLab.getWorld().parts.some(p=>p.kind==='wheel')));
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false);
+  await page.setViewportSize({width:844,height:390});
+  await page.locator('#challengeAction').click();
+  await page.locator('[data-game="chaos"]').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().gameMode),'chaos');
+  assert.ok(await page.evaluate(()=>window.StickLab.getWorld().groups.length>=3));
+  await page.locator('#challengeAction').click();
+  await page.locator('[data-game="living"]').click();
+  assert.ok(await page.evaluate(()=>window.StickLab.getResidents().length>=2));
+  await page.locator('#challengeAction').click();
+  await page.locator('[data-game="puzzles"]').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().gameMode),'puzzles');
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),true,'keep picker available until choosing a puzzle');
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge),null);
+  await page.locator('[data-level="0"]').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge.index),0);
+  await page.locator('#challengeAction').click();
+  await page.locator('[data-game="sandbox"]').click();
+  const restored=await page.evaluate(()=>window.StickLab.getWorld());
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().gameMode),'sandbox');
+  assert.equal(restored.parts.length,world.parts.length);
+  assert.equal(restored.groups.length,world.groups.length);
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
