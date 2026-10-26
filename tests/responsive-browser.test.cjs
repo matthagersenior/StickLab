@@ -64,3 +64,28 @@ test('essential gameplay controls remain inside the viewport and do not overlap 
   }
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
 });
+
+test('same running touch session survives portrait-landscape-portrait rotation', {skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(r=>srv.listen(0,'127.0.0.1',r));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const context=await browser.newContext({viewport:{width:360,height:800},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await context.newPage(),errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('#zoomIn').click();assert.match(await page.locator('#cameraFeedback').textContent(),/\d+%/);
+  await page.setViewportSize({width:844,height:390});await page.waitForTimeout(80);
+  assert.equal(await page.locator('.mobiletools').isVisible(),true,'tools must remain available in landscape');
+  assert.equal(await page.locator('#openMenu').isVisible(),true,'menu must remain available in landscape');
+  await page.locator('#openMenu').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),true);
+  await page.locator('#sidebar [data-tool="ball"]').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false);
+  assert.equal(await page.locator('.mobiletools [data-tool="ball"]').evaluate(el=>el.classList.contains('active')),true);
+  await page.setViewportSize({width:360,height:800});await page.waitForTimeout(80);
+  assert.equal(await page.locator('#zoomOut').isVisible(),true);
+  await page.locator('#zoomOut').click();
+  assert.deepEqual(errors,[]);
+  await context.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
