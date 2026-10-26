@@ -15,7 +15,7 @@ A tiny, offline-first, touch-friendly 2D sandbox combining ragdoll figures, cons
 - Responsive Canvas scene with Eco, Standard, High, and automatic performance choices.
 - Three preset worlds: Playground, Tower, and Chaos.
 
-**Controls:** Use the side toolbar or mobile bottom toolbar. Select **Hinge** and tap two bodies to join them; connect to a fixed anchor to create a suspended rotating beam. The first tap selects a local joint position; the second creates the joint. Tap **Step ·** to advance physics while paused. Keyboard: `1`–`8` original tools, `P` pause, `.` step, Ctrl+Z undo, A/D or arrows to move a selected figure, W/↑/Space to jump.
+**Controls:** Use the side toolbar or mobile bottom toolbar. Select **Hinge** and tap two bodies to join them; connect to a fixed anchor to create a suspended rotating beam. The first tap selects a local joint position; the second creates the joint. Tap **Step ·** to advance physics while paused. Keyboard: `1`–`8` original tools, `9` Hinge, `P` pause, `.` step, Ctrl+Z undo, A/D or arrows to move a selected figure, W/↑/Space to jump.
 
 **Save compatibility:** This release exports `{format: "StickLab", version: 2, world: ...}`. Existing v0.1 JSON scenes remain readable. On Slot 1, Load also checks the original `sticklab_scene_v1` browser-storage key if no v0.2 Slot 1 save exists. Import validation runs before modifying the active scene. Browser save slots are specific to each device/browser/origin.
 
