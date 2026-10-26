@@ -151,7 +151,7 @@ function selectGameMode(which){
   gameMode='sandbox';updateGameModes();updateChallenges();toast('Free Sandbox · your creation is available');return true;
  }
  if(gameMode==='sandbox'&&!gameReturn)gameReturn={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};
- if(challenge)exitChallenge();
+ if(challenge&&which!=='puzzles')exitChallenge();
  if(which==='puzzles'){
   gameMode='puzzles';updateGameModes();updateChallenges();
   var levels=$('challengeSection');if(levels&&levels.scrollIntoView)levels.scrollIntoView({block:'center'});
@@ -168,7 +168,7 @@ function selectGameMode(which){
 }
 function updateChallenges(){
  var buttons=document.querySelectorAll('[data-level]');buttons.forEach(function(b){var index=+b.dataset.level;b.disabled=index>=unlocked;b.classList.toggle('active',!!challenge&&challenge.index===index)});
- var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'✓ Level completed! Choose the next or return to your saved sandbox.':Levels.levels[challenge.index].brief+' Keep the blue ball fully inside the green goal until it settles.'):'Free Sandbox · No win condition. Physics Challenges are optional.';
+ var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'✓ Level completed! Choose the next or return to your saved sandbox.':Levels.levels[challenge.index].brief+' Keep the blue ball fully inside the green goal until it settles.'):((GAME_MODES.filter(function(m){return m.id===gameMode})[0]||GAME_MODES[0]).name+' · No required win condition. Physics Challenges are optional.');
  var next=$('nextLevel');if(next)next.disabled=!challenge||!challenge.won||challenge.index>=Levels.levels.length-1;
  var objective=$('missionObjective');
  if(objective){objective.classList.toggle('hidden',!challenge);objective.textContent=challenge?(challenge.won?'✓ Level '+(challenge.index+1)+' complete! Choose the next level or return to Free Sandbox.':'🎯 Level '+(challenge.index+1)+'/'+Levels.levels.length+': '+Levels.levels[challenge.index].brief+' Keep the blue ball inside the green goal to finish.') :''}
