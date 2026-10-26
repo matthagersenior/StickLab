@@ -121,3 +121,29 @@ test('Eco profile respects a lower decision budget and challenge goals remain av
  api.startLevel(0);assert.equal(api.getState().challenge.index,0);
  assert.equal(api.getState().agents,0);
 });
+
+test('autonomous resident produces physical displacement when not player-controlled',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const hip=api.spawnResident(780,840);
+ const x=hip.x;
+ for(let i=0;i<125;i++)api.step();
+ const moved=api.getWorld().parts.find(p=>p.id===hip.id);
+ assert.ok(Number.isFinite(moved.x));
+ assert.ok(Math.abs(moved.x-x)>2,'resident should locomote using physics impulses');
+});
+test('AI-off setting persists when switching worlds while preserving sandbox objects',()=>{
+ const {api}=engine();api.setAIEnabled(false);api.createWorld('tower');
+ assert.equal(api.getState().aiEnabled,false);
+ assert.equal(api.getWorld().groups.length,2);
+ api.setAIEnabled(true);api.createWorld('playground');
+ assert.equal(api.getState().aiEnabled,true);
+});
+test('saving and reloading v4 slot restores resident mode and AI preference',()=>{
+ const {api,nodes,storage}=engine();api.createWorld('empty');api.spawnResident(800,850);
+ const resident=api.getResidents()[0];api.setResidentMode(resident.id,'help');api.setAIEnabled(false);
+ nodes.saveSlot.value='3';api.save();assert.equal(JSON.parse(storage.sticklab_scene_v4_3).version,4);
+ api.createWorld('tower');api.load();
+ assert.equal(api.getState().aiEnabled,false);
+ assert.equal(api.getResidents()[0].name,resident.name);
+ assert.equal(api.getResidents()[0].mode,'help');
+});
