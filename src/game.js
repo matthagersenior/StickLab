@@ -19,7 +19,7 @@ try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getI
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
 var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap an anchor or object then a beam to attach rotating joints.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
 function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
@@ -234,9 +234,43 @@ function draw(){ctx.clearRect(0,0,width,height);backdrop();ctx.save();ctx.transl
 function loop(now){if(!state.lastFrame)state.lastFrame=now;var dt=Math.min(.06,(now-state.lastFrame)/1000);state.lastFrame=now;if(!state.paused){state.acc+=dt*options.speed;var steps=0;while(state.acc>=STEP&&steps<4){simulate();state.acc-=STEP;steps++}if(steps===4)state.acc=0}else state.acc=0;
  draw();state.frames++;state.fpsTime+=dt;if(state.fpsTime>.75){state.fps=state.frames/state.fpsTime;state.fpsTime=0;state.frames=0;updateCounts();if(options.quality==='auto'&&profile==='standard'){lowFpsSec=state.fps<27?lowFpsSec+.75:Math.max(0,lowFpsSec-.75);if(lowFpsSec>6){profile='eco';resize();toast('Eco physics enabled for smoother play')}}}requestAnimationFrame(loop)}
 function hitTest(x,y){for(var i=world.parts.length-1;i>=0;i--){var p=world.parts[i],r=reach(p);if(p.kind==='box'){var loc=toLocal(p,x,y);if(Math.abs(loc.x)<p.w/2+11&&Math.abs(loc.y)<p.h/2+11)return p}else if(Math.hypot(p.x-x,p.y-y)<Math.max(15,p.r+12))return p}return null}
+function hitDetachableLink(x,y){
+ var nearest=null,best=18/Math.max(.24,cam.z);
+ for(var i=0;i<world.links.length;i++){
+  var l=world.links[i];if(['rope','spring','hinge'].indexOf(l.type)<0)continue;
+  var a=findPart(l.a),b=findPart(l.b);if(!a||!b)continue;
+  var dist;
+  if(l.type==='hinge'){
+   var pa=hingePoint(a,l.ax||0,l.ay||0),pb=hingePoint(b,l.bx||0,l.by||0);
+   dist=Math.hypot(x-(pa.x+pb.x)/2,y-(pa.y+pb.y)/2);
+  }else{
+   var dx=b.x-a.x,dy=b.y-a.y,den=dx*dx+dy*dy;
+   var t=den?Math.max(0,Math.min(1,((x-a.x)*dx+(y-a.y)*dy)/den)):0;
+   dist=Math.hypot(x-(a.x+dx*t),y-(a.y+dy*t));
+  }
+  if(dist<best){best=dist;nearest=l}
+ }
+ return nearest;
+}
+function detachAt(x,y,p){
+ var links=[];
+ if(p&&p.kind==='anchor'){
+  links=world.links.filter(function(l){return ['rope','spring','hinge'].indexOf(l.type)>=0&&(l.a===p.id||l.b===p.id)})
+ }else{
+  var l=hitDetachableLink(x,y);if(l)links=[l];
+ }
+ if(!links.length){toast('Tap a rope, spring, hinge, or purple anchor to release it');return false}
+ pushHistory();
+ var ids={};links.forEach(function(l){ids[l.id]=true});
+ world.links=world.links.filter(function(l){return !ids[l.id]});
+ state.linkStart=null;state.linkPoint=null;
+ toast('Detached '+links.length+' connection'+(links.length===1?'':'s')+' · objects preserved');
+ updateCounts();return true;
+}
 function pointerStart(id,cx,cy){var pos=worldPoint(cx,cy),p=hitTest(pos.x,pos.y);state.pointerCoords=pos;
  if(state.tool==='grab'){if(p){if(challenge&&!challenge.won&&p.id===challenge.targetId){toast('Solve the puzzle using physics tools');return}state.selected=p.id;state.drag={id:id,part:p,target:pos};if(p.group){toast('Figure selected · arrows to move · ↑ to jump · release to restore AI');updateResidents()}}else{state.pan={id:id,cx:cx,cy:cy,x:cam.x,y:cam.y};state.selected=null;updateResidents()}}
  else if(state.tool==='erase'){if(p)erase(p)}
+ else if(state.tool==='detach'){detachAt(pos.x,pos.y,p)}
  else if(state.tool==='rope'||state.tool==='spring'||state.tool==='hinge'){if(!p){toast('Tap an object to connect');return}if(!state.linkStart){state.linkStart=p.id;state.linkPoint=pos;toast('Now tap the second object')}else{var a=findPart(state.linkStart);if(a&&p.id!==a.id){pushHistory();if(state.tool==='hinge'){var aPt=toLocal(a,state.linkPoint.x,state.linkPoint.y),bPt=toLocal(p,pos.x,pos.y);world.links.push({id:uid(),a:a.id,b:p.id,type:'hinge',len:0,k:.88,ax:aPt.x,ay:aPt.y,bx:bPt.x,by:bPt.y,breakable:true,strength:90});toast('Hinge connected — bodies rotate')}else{link(a,p,state.tool,null,state.tool==='spring'?.16:.94);toast(state.tool==='rope'?'Rope connected':'Spring connected')}}else toast('Choose a different object');state.linkStart=null;state.linkPoint=null}}
  else if(state.tool==='figure'||state.tool==='living'){pushHistory();figure(pos.x,Math.min(pos.y,FLOOR-88),state.tool==='living');updateCounts();updateResidents()}
  else if(state.tool==='wheel'){pushHistory();wheel(pos.x,Math.min(pos.y,FLOOR-27),false);updateCounts()}
