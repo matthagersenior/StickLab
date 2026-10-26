@@ -1,4 +1,4 @@
-/* StickLab 0.3 — dependency-free, offline-capable 2D physics sandbox.
+/* StickLab 0.4 — dependency-free, offline-capable 2D physics sandbox.
    All positions and physics are expressed in world pixels. */
 (function(){'use strict';
 var $=function(id){return document.getElementById(id)};
@@ -8,25 +8,27 @@ if(!Number.isFinite)Number.isFinite=function(n){return typeof n==='number'&&isFi
 if(!Number.isSafeInteger)Number.isSafeInteger=function(n){return Number.isFinite(n)&&Math.floor(n)===n&&Math.abs(n)<=9007199254740991};
 if(!Array.prototype.includes)Array.prototype.includes=function(x){return this.indexOf(x)!==-1};
 if(typeof NodeList!=='undefined'&&!NodeList.prototype.forEach)NodeList.prototype.forEach=Array.prototype.forEach;
-var Core=window.StickLabCore,Machines=window.StickLabMachines,Levels=window.StickLabLevels;if(!Core||!Machines||!Levels)throw Error('StickLab simulation modules were not loaded');
+var Core=window.StickLabCore,Machines=window.StickLabMachines,Levels=window.StickLabLevels,Brain=window.StickLabInhabitants;if(!Core||!Machines||!Levels||!Brain)throw Error('StickLab simulation modules were not loaded');
 var canvas=$('canvas'),ctx=canvas.getContext('2d'),stage=$('stage');
 var W=2200,H=1150,FLOOR=930,STEP=1/60;
-var world={parts:[],links:[],groups:[],next:1,title:'The Playground'};var partIndex={};
+var world={parts:[],links:[],groups:[],next:1,title:'The Playground',aiEnabled:true};var partIndex={};
 var options={gravity:780,speed:1,bounce:.35,quality:'auto',material:'wood'};
-var limits={eco:{objects:85,iterations:3,dpr:1},standard:{objects:180,iterations:5,dpr:1.5},high:{objects:320,iterations:7,dpr:2}};
+var limits={eco:{objects:85,iterations:3,dpr:1,agents:2,think:30},standard:{objects:180,iterations:5,dpr:1.5,agents:5,think:18},high:{objects:320,iterations:7,dpr:2,agents:8,think:12}};
 var profile='standard',lowFpsSec=0,challenge=null,unlocked=1;
 try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getItem('sticklab_challenge_unlocks_v03'),10)||1))}catch(e){}
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
-var state={linkPoint:null,collisionCandidates:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
+var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop an articulated stick figure.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap an anchor or object then a beam to attach rotating joints.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap an anchor or object then a beam to attach rotating joints.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
 function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
 function setMass(p){p.inv=p.fixed?0:1/(p.kind==='box'?Math.max(8,(p.w*p.h)/125):Math.max(3,p.r*p.r/50));p.iin=p.kind==='box'&&!p.fixed?12*p.inv/(p.w*p.w+p.h*p.h):0}
 function link(a,b,type,length,stiffness){if(!a||!b||a.id===b.id)return null;var l={id:uid(),a:a.id,b:b.id,type:type,len:length==null?Math.hypot(a.x-b.x,a.y-b.y):length,k:stiffness==null?1:stiffness,breakable:type==='rope'||type==='spring',strength:type==='rope'?85:110};world.links.push(l);return l}
-function figure(x,y){if(!room(15))return null;var group='f'+uid();var defs={head:[0,-79,13],neck:[0,-55,4],chest:[0,-33,6],hip:[0,2,6],ls:[-16,-47,5],rs:[16,-47,5],le:[-27,-22,4],re:[27,-22,4],lh:[-30,5,5],rh:[30,5,5],lk:[-13,38,5],rk:[13,38,5],lf:[-17,76,6],rf:[17,76,6]};var nodes={};Object.keys(defs).forEach(function(k){var v=defs[k];nodes[k]=part('joint',x+v[0],y+v[1],{r:v[2],group:group,color:COLORS.ink})});
- var bones=[['head','neck'],['neck','chest'],['chest','hip'],['chest','ls'],['chest','rs'],['ls','le'],['rs','re'],['le','lh'],['re','rh'],['hip','lk'],['hip','rk'],['lk','lf'],['rk','rf'],['ls','rs'],['chest','lk'],['chest','rk'],['ls','hip'],['rs','hip']];bones.forEach(function(pair,i){link(nodes[pair[0]],nodes[pair[1]],i<13?'bone':'brace',null,.88)});world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true});return nodes.hip}
+function figure(x,y,living){if(!room(14))return null;var group='f'+uid();var defs={head:[0,-79,13],neck:[0,-55,4],chest:[0,-33,6],hip:[0,2,6],ls:[-16,-47,5],rs:[16,-47,5],le:[-27,-22,4],re:[27,-22,4],lh:[-30,5,5],rh:[30,5,5],lk:[-13,38,5],rk:[13,38,5],lf:[-17,76,6],rf:[17,76,6]};var nodes={};Object.keys(defs).forEach(function(k){var v=defs[k];nodes[k]=part('joint',x+v[0],y+v[1],{r:v[2],group:group,color:COLORS.ink})});
+ var bones=[['head','neck'],['neck','chest'],['chest','hip'],['chest','ls'],['chest','rs'],['ls','le'],['rs','re'],['le','lh'],['re','rh'],['hip','lk'],['hip','rk'],['lk','lf'],['rk','rf'],['ls','rs'],['chest','lk'],['chest','rk'],['ls','hip'],['rs','hip']];bones.forEach(function(pair,i){link(nodes[pair[0]],nodes[pair[1]],i<13?'bone':'brace',null,.88)});var serial=parseInt(group.slice(1),10)||0,names=['Pip','Nova','Rook','Echo','Dot','Moss','June','Spar'],traits=['curious','cautious','helpful'];
+ world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true,ai:!!living,name:names[serial%names.length]+' '+serial,personality:traits[serial%3],mode:living?'wander':'rest',memory:{hazards:0,lastHazardX:null,interactions:0}});return nodes.hip}
+function resident(x,y){return figure(x,y,true)}
 function countEntities(){return world.parts.filter(function(p){return !p.group}).length+world.groups.length}
 function room(n){if(world.parts.length+n<=limits[profile].objects)return true;toast('Object limit reached · choose a higher performance profile');return false}
 function block(x,y,w,h,fixed,color){if(!room(1))return null;return part('box',x,y,{w:w||68,h:h||48,fixed:fixed,color:color||COLORS.orange,material:options.material})}
@@ -42,6 +44,20 @@ function rebuildIndex(){partIndex={};for(var i=0;i<world.parts.length;i++)partIn
 function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].id===id)return world.groups[i];return null}
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps)}
+function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
+function updateResidents(){
+ var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
+ $('aiEnabled').checked=world.aiEnabled;
+ if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
+ else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · AI active':' · AI off')+(g?' · passive ragdoll selected':'');
+ $('releaseResident').disabled=!g;
+ $('residentMode').disabled=!g||!g.ai;
+ $('applyResidentMode').disabled=!g||!g.ai;
+}
+function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
+function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
+function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
+function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0)return false;g.mode=mode;g.intent=mode;g.brain=null;updateResidents();return true}
 function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(window.innerWidth<691)$('sidebar').classList.remove('open')}
 function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=state.paused?'Simulation paused':'Everything is an experiment.'}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
@@ -49,20 +65,20 @@ function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width
 function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680))}
 function worldPoint(cx,cy){var r=canvas.getBoundingClientRect();return {x:cam.x+((cx-r.left)-width/2)/cam.z,y:cam.y+((cy-r.top)-height/2)/cam.z}}
 function zoom(factor,atX,atY){var before=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.z=Math.max(.24,Math.min(2.5,cam.z*factor));var after=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.x+=before.x-after.x;cam.y+=before.y-after.y}
-function newWorld(which){challenge=null;world={parts:[],links:[],groups:[],next:1,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
+function newWorld(which){challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:true,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
  if(which==='playground'){
- block(770,FLOOR-32,102,64,true,'#aebbb7');block(880,FLOOR-29,60,58,false,COLORS.orange);block(880,FLOOR-91,60,58,false,COLORS.orange);block(954,FLOOR-25,50,50,false,COLORS.orange);var hanging=figure(730,FLOOR-176);var hanger=anchor(730,370);if(hanging){var hangingGroup=findGroup(hanging.group);link(hanger,findPart(hangingGroup.head),'rope',270,.96)}figure(1100,FLOOR-76);
+ block(770,FLOOR-32,102,64,true,'#aebbb7');block(880,FLOOR-29,60,58,false,COLORS.orange);block(880,FLOOR-91,60,58,false,COLORS.orange);block(954,FLOOR-25,50,50,false,COLORS.orange);var hanging=figure(730,FLOOR-176);var hanger=anchor(730,370);if(hanging){var hangingGroup=findGroup(hanging.group);link(hanger,findPart(hangingGroup.head),'rope',270,.96)}resident(1100,FLOOR-76);
  ball(990,450,32,COLORS.aqua);ball(1090,FLOOR-28,28,COLORS.pink);var a=anchor(1210,248),b=ball(1250,440,29,COLORS.violet);link(a,b,'rope',205,.95);
  block(1415,FLOOR-110,145,18,true,'#aebbb7');
  }else if(which==='tower'){
  for(var i=0;i<8;i++)block(865,FLOOR-25-i*51,102,50,false,i%2?COLORS.orange:COLORS.aqua);
- figure(570,FLOOR-76);figure(1170,FLOOR-76);ball(1170,335,50,COLORS.pink);anchor(1350,280);
+ resident(570,FLOOR-76);resident(1170,FLOOR-76);ball(1170,335,50,COLORS.pink);anchor(1350,280);
  }else if(which==='chaos'){
- for(var j=0;j<4;j++)figure(600+j*145,400-j*35);
+ for(var j=0;j<4;j++)figure(600+j*145,400-j*35,j<2);
  for(var k=0;k<10;k++)ball(620+k*65,240+(k%3)*62,16+(k%4)*6,k%2?COLORS.pink:COLORS.aqua);
  for(var n=0;n<7;n++)block(700+n*85,680-(n%3)*80,62,48,false,COLORS.orange);
  }
- $('worldTitle').textContent=world.title;defaultCamera();updateCounts();updateChallenges();toast(world.title+' loaded')}
+ $('worldTitle').textContent=world.title;defaultCamera();updateCounts();updateChallenges();updateResidents();toast(world.title+' loaded')}
 function updateChallenges(){var buttons=document.querySelectorAll('[data-level]');buttons.forEach(function(b){var index=+b.dataset.level;b.disabled=index>=unlocked;b.classList.toggle('active',!!challenge&&challenge.index===index)});var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'Solved! Choose the next challenge.':Levels.levels[challenge.index].brief):'Sandbox mode · No win condition';var next=$('nextLevel');if(next)next.disabled=!challenge||!challenge.won||challenge.index>=Levels.levels.length-1}
 function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
 function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
