@@ -38,3 +38,28 @@ test('touch tools place only on tap release and never on two-finger gesture',()=
  send('pointerup',2,200,300);send('pointerup',3,380,300);
  assert.equal(api.getState().parts,original+1,'pinch should not spawn extra boxes');
 });
+
+test('physics challenges start at level 1 without skipping locked levels',()=>{
+ const {api}=engine();assert.equal(api.getState().unlocked,1);
+ assert.equal(api.startLevel(1),false);assert.equal(api.startLevel(0),true);
+ const status=api.getState();assert.equal(status.challenge.index,0);assert.equal(status.challenge.won,false);
+ assert.equal(api.getWorld().parts.some(p=>p.color==='#2676bd'&&p.kind==='ball'),true);
+ api.createWorld('playground');assert.equal(api.getState().challenge,null);
+});
+test('v0.3 mobile tap creates a motor cart with two powered wheels',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');api.setTool('cart');
+ const e={pointerType:'touch',pointerId:2,clientX:400,clientY:370,preventDefault(){}};
+ nodes.canvas.listeners.pointerdown(e);nodes.canvas.listeners.pointerup(e);
+ const w=api.getWorld();assert.equal(w.parts.filter(p=>p.kind==='wheel'&&p.motor).length,2);
+ assert.equal(w.links.filter(l=>l.type==='hinge').length,2);
+});
+test('steel construction material survives an export and reload through normalized world',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ nodes.material.value='steel';nodes.material.onchange.call(nodes.material);
+ api.setTool('box');const e={pointerType:'touch',pointerId:4,clientX:400,clientY:370,preventDefault(){}};
+ nodes.canvas.listeners.pointerdown(e);nodes.canvas.listeners.pointerup(e);
+ const box=api.getWorld().parts.find(p=>p.kind==='box');
+ assert.equal(box.material,'steel');
+ const before=api.getWorld();api.importScene({format:'StickLab',version:3,world:before});
+ assert.equal(api.getWorld().parts[0].material,'steel');
+});
