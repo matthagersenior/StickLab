@@ -27,24 +27,26 @@ function collisionPairs(parts,size){
 function normalizeScene(input){
  if(!input||typeof input!=='object')throw Error('Missing StickLab scene');
  var wrapper=input.world?input:{format:'StickLab',version:1,world:input};
- if(wrapper.format!=='StickLab'||(wrapper.version!==1&&wrapper.version!==2))throw Error('Unsupported StickLab version');
+ if(wrapper.format!=='StickLab'||(wrapper.version!==1&&wrapper.version!==2&&wrapper.version!==3))throw Error('Unsupported StickLab version');
  var world=wrapper.world;
  if(!world||!Array.isArray(world.parts)||!Array.isArray(world.links)||!Array.isArray(world.groups)||world.parts.length>350||world.links.length>800||world.groups.length>100)throw Error('Invalid world arrays');
  var ids={},taken={},maxId=0;
  var parts=world.parts.map(function(p){
-  if(!p||!integer(p.id)||taken[p.id]||['joint','box','ball','anchor'].indexOf(p.kind)<0||!finite(p.x)||!finite(p.y)||Math.abs(p.x)>5000||Math.abs(p.y)>5000)throw Error('Invalid body');
+  if(!p||!integer(p.id)||taken[p.id]||['joint','box','ball','anchor','wheel'].indexOf(p.kind)<0||!finite(p.x)||!finite(p.y)||Math.abs(p.x)>5000||Math.abs(p.y)>5000)throw Error('Invalid body');
   if(p.px!==undefined&&!finite(p.px)||p.py!==undefined&&!finite(p.py)||p.angle!==undefined&&!finite(p.angle)||p.pa!==undefined&&!finite(p.pa))throw Error('Invalid body motion');
   if(p.kind==='box'&&(!finite(p.w)||!finite(p.h)||p.w<5||p.h<5||p.w>300||p.h>300)||p.kind!=='box'&&(!finite(p.r)||p.r<1||p.r>100))throw Error('Invalid body geometry');
+  if((p.motorPower!==undefined&&(!finite(p.motorPower)||p.motorPower<.2||p.motorPower>2))||(p.hp!==undefined&&(!finite(p.hp)||p.hp<0||p.hp>10000))|| (p.material!==undefined&&['wood','steel','rubber'].indexOf(p.material)<0))throw Error('Invalid material or wheel state');
   if(p.angle!==undefined&&Math.abs(p.angle)>100000||p.pa!==undefined&&Math.abs(p.pa)>100000)throw Error('Invalid rotation');
   ids[p.id]=p;taken[p.id]=1;maxId=Math.max(maxId,p.id);
-  return {id:p.id,kind:p.kind,x:p.x,y:p.y,px:p.px===undefined?p.x:p.px,py:p.py===undefined?p.y:p.py,w:p.kind==='box'?p.w:0,h:p.kind==='box'?p.h:0,r:p.kind==='box'?0:p.r,angle:p.angle||0,pa:p.pa===undefined?(p.angle||0):p.pa,fixed:!!p.fixed,group:p.group||null,color:typeof p.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#182a3b'};
+  return {id:p.id,kind:p.kind,x:p.x,y:p.y,px:p.px===undefined?p.x:p.px,py:p.py===undefined?p.y:p.py,w:p.kind==='box'?p.w:0,h:p.kind==='box'?p.h:0,r:p.kind==='box'?0:p.r,angle:p.angle||0,pa:p.pa===undefined?(p.angle||0):p.pa,fixed:!!p.fixed,group:p.group||null,color:typeof p.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#182a3b',material:p.material||'wood',hp:p.hp===undefined?(p.material==='steel'?240:90):p.hp,motor:p.kind==='wheel'&&!!p.motor,motorDirection:p.motorDirection===-1?-1:1,motorPower:p.motorPower||1};
  });
  var links=world.links.map(function(l){
   if(!l||!integer(l.id)||taken[l.id]||!ids[l.a]||!ids[l.b]||l.a===l.b||['bone','brace','rope','spring','hinge'].indexOf(l.type)<0||!finite(l.len)||l.len<0||l.len>10000)throw Error('Invalid link');
   if(l.k!==undefined&&(!finite(l.k)||l.k<0||l.k>1))throw Error('Invalid stiffness');
   if(l.type==='hinge'&&[l.ax,l.ay,l.bx,l.by].some(function(v){return !finite(v)||Math.abs(v)>500}))throw Error('Invalid hinge offset');
+  if(l.strength!==undefined&&(!finite(l.strength)||l.strength<1||l.strength>10000))throw Error('Invalid link strength');
   taken[l.id]=1;maxId=Math.max(maxId,l.id);
-  return {id:l.id,a:l.a,b:l.b,type:l.type,len:l.len,k:l.k===undefined?1:l.k,ax:l.type==='hinge'?l.ax:0,ay:l.type==='hinge'?l.ay:0,bx:l.type==='hinge'?l.bx:0,by:l.type==='hinge'?l.by:0};
+  return {id:l.id,a:l.a,b:l.b,type:l.type,len:l.len,k:l.k===undefined?1:l.k,ax:l.type==='hinge'?l.ax:0,ay:l.type==='hinge'?l.ay:0,bx:l.type==='hinge'?l.bx:0,by:l.type==='hinge'?l.by:0,breakable:!!l.breakable,strength:l.strength===undefined?90:l.strength};
  });
  var groups=world.groups.map(function(g){
   if(!g||typeof g.id!=='string'||!/^f[0-9]+$/.test(g.id)||!Array.isArray(g.nodes)||!g.nodes.length||g.nodes.length>30||!integer(g.hip)||!integer(g.head)||g.nodes.indexOf(g.hip)<0||g.nodes.indexOf(g.head)<0)throw Error('Invalid ragdoll group');
@@ -53,7 +55,7 @@ function normalizeScene(input){
  });
  parts.forEach(function(p){if(p.group&&!groups.some(function(g){return g.id===p.group&&g.nodes.indexOf(p.id)>=0}))throw Error('Orphan ragdoll body')});
  var next=integer(world.next)&&world.next>maxId?world.next:maxId+1;
- return {format:'StickLab',version:2,world:{parts:parts,links:links,groups:groups,next:next,title:typeof world.title==='string'?world.title.slice(0,50):'Imported World'}};
+ return {format:'StickLab',version:3,world:{parts:parts,links:links,groups:groups,next:next,title:typeof world.title==='string'?world.title.slice(0,50):'Imported World'}};
 }
 var api={bounds:bounds,aabbOverlap:aabbOverlap,collisionPairs:collisionPairs,normalizeScene:normalizeScene};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
