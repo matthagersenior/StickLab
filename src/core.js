@@ -27,7 +27,7 @@ function collisionPairs(parts,size){
 function normalizeScene(input){
  if(!input||typeof input!=='object')throw Error('Missing StickLab scene');
  var wrapper=input.world?input:{format:'StickLab',version:1,world:input};
- if(wrapper.format!=='StickLab'||(wrapper.version!==1&&wrapper.version!==2&&wrapper.version!==3))throw Error('Unsupported StickLab version');
+ if(wrapper.format!=='StickLab'||(wrapper.version!==1&&wrapper.version!==2&&wrapper.version!==3&&wrapper.version!==4))throw Error('Unsupported StickLab version');
  var world=wrapper.world;
  if(!world||!Array.isArray(world.parts)||!Array.isArray(world.links)||!Array.isArray(world.groups)||world.parts.length>350||world.links.length>800||world.groups.length>100)throw Error('Invalid world arrays');
  var ids={},taken={},maxId=0;
@@ -51,11 +51,19 @@ function normalizeScene(input){
  var groups=world.groups.map(function(g){
   if(!g||typeof g.id!=='string'||!/^f[0-9]+$/.test(g.id)||!Array.isArray(g.nodes)||!g.nodes.length||g.nodes.length>30||!integer(g.hip)||!integer(g.head)||g.nodes.indexOf(g.hip)<0||g.nodes.indexOf(g.head)<0)throw Error('Invalid ragdoll group');
   var visited={};g.nodes.forEach(function(id){if(visited[id]||!ids[id]||ids[id].group!==g.id)throw Error('Invalid ragdoll node');visited[id]=1});
-  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true};
+  if(g.ai!==undefined&&typeof g.ai!=='boolean')throw Error('Invalid agent activation');
+  if(g.name!==undefined&&(typeof g.name!=='string'||g.name.length>32||!/^[A-Za-z][A-Za-z0-9 _-]*$/.test(g.name)))throw Error('Invalid agent name');
+  if(g.mode!==undefined&&['wander','help','rest'].indexOf(g.mode)<0)throw Error('Invalid agent behavior');
+  if(g.personality!==undefined&&['curious','cautious','helpful'].indexOf(g.personality)<0)throw Error('Invalid personality');
+  var mem=g.memory||{hazards:0,lastHazardX:null,interactions:0};
+  if(typeof mem!=='object'||Array.isArray(mem)||!(finite(mem.hazards)&&Math.floor(mem.hazards)===mem.hazards)||mem.hazards<0||mem.hazards>99||!(finite(mem.interactions)&&Math.floor(mem.interactions)===mem.interactions)||mem.interactions<0||mem.interactions>99||(mem.lastHazardX!==null&&(!finite(mem.lastHazardX)||Math.abs(mem.lastHazardX)>5000)))throw Error('Invalid agent memory');
+  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
+
  });
  parts.forEach(function(p){if(p.group&&!groups.some(function(g){return g.id===p.group&&g.nodes.indexOf(p.id)>=0}))throw Error('Orphan ragdoll body')});
+ if(world.aiEnabled!==undefined&&typeof world.aiEnabled!=='boolean')throw Error('Invalid AI setting');
  var next=integer(world.next)&&world.next>maxId?world.next:maxId+1;
- return {format:'StickLab',version:3,world:{parts:parts,links:links,groups:groups,next:next,title:typeof world.title==='string'?world.title.slice(0,50):'Imported World'}};
+ return {format:'StickLab',version:4,world:{parts:parts,links:links,groups:groups,aiEnabled:!!world.aiEnabled,next:next,title:typeof world.title==='string'?world.title.slice(0,50):'Imported World'}};
 }
 var api={bounds:bounds,aabbOverlap:aabbOverlap,collisionPairs:collisionPairs,normalizeScene:normalizeScene};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;

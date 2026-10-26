@@ -17,6 +17,7 @@ jobs:
           node --check src/core.js
           node --check src/levels.js
           node --check src/machines.js
+          node --check src/inhabitants.js
           node --check src/game.js
       - name: Build hosted and portable games
         run: node scripts/build-offline.cjs

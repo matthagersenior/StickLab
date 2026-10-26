@@ -7,6 +7,7 @@ for(const [needle,replacement] of [
  ['<script src="./core.js"></script>','<script>'+fs.readFileSync(path.join(root,'src/core.js'),'utf8')+'</script>'],
  ['<script src="./levels.js"></script>','<script>'+fs.readFileSync(path.join(root,'src/levels.js'),'utf8')+'</script>'],
  ['<script src="./machines.js"></script>','<script>'+fs.readFileSync(path.join(root,'src/machines.js'),'utf8')+'</script>'],
+ ['<script src="./inhabitants.js"></script>','<script>'+fs.readFileSync(path.join(root,'src/inhabitants.js'),'utf8')+'</script>'],
  ['<script src="./game.js"></script>','<script>'+fs.readFileSync(path.join(root,'src/game.js'),'utf8')+'</script>']
 ]){if(html.split(needle).length!==2)throw Error('Expected exactly one '+needle);html=html.replace(needle,replacement)}
 function write(name,content){const dest=path.join(root,name),tmp=dest+'.tmp';fs.writeFileSync(tmp,content);fs.renameSync(tmp,dest)}
