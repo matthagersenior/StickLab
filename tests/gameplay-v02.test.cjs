@@ -5,13 +5,13 @@ function engine(pointer){
  const nodes={},noop=()=>{};
  function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},listeners:{},addEventListener:function(name,fn){this.listeners[name]=fn},setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
  const storage={};const context={document:{getElementById:el,querySelectorAll(){return[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
- vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
+ vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/inhabitants.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
  return{api:context.window.StickLab,nodes,storage};
 }
 test('v1 preset ragdolls survive save to slot 2 and reload',()=>{
  const{api,nodes,storage}=engine();const initial=api.getWorld().groups.length;assert.ok(initial>=2);
  api.save();nodes.saveSlot.value='2';api.save();api.createWorld('empty');api.load();
- assert.equal(api.getWorld().groups.length,initial);assert.equal(JSON.parse(storage.sticklab_scene_v3_2).version,3);
+ assert.equal(api.getWorld().groups.length,initial);assert.equal(JSON.parse(storage.sticklab_scene_v4_2).version,4);
 });
 test('invalid version leaves active world untouched',()=>{
  const{api}=engine(),before=JSON.stringify(api.getWorld());
