@@ -21,6 +21,75 @@
 .controlpad{z-index:5;flex-wrap:wrap;justify-content:flex-end;max-width:220px}
 .controlpad .control-label{flex-basis:100%;text-align:center;color:#192838;background:#ffffffef;border-radius:8px;padding:5px 7px;font-size:11px;font-weight:750;letter-spacing:.05px;line-height:1.3;pointer-events:none}
 .controlpad button{min-width:52px;min-height:52px;cursor:pointer}
+
+/* Responsive game chrome — layout follows both screen dimensions and touch input.
+   The Canvas remains unobstructed and the full tool palette stays reachable. */
+@media (max-width:690px), (max-width:1180px) and (pointer:coarse) {
+  .app{display:block;min-height:0;width:100%;height:100%;height:100dvh}
+  .side{position:absolute;left:0;top:0;bottom:0;width:min(300px,88vw);box-shadow:8px 0 30px #09182730;transform:translateX(-105%);transition:transform .16s;z-index:8}
+  .side.open{transform:translateX(0)}
+  .stage{height:100%;height:100dvh;min-width:0}
+  .topbar{top:calc(8px + env(safe-area-inset-top,0px));left:calc(9px + env(safe-area-inset-left,0px));right:calc(9px + env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:7px;z-index:4}
+  .world-chip{min-width:0;width:100%;max-width:none;padding:8px 11px}
+  .world-chip b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+  .world-chip p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top-actions{margin:0;width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:5px;flex-wrap:nowrap}
+  .action{min-height:44px;min-width:0;height:44px;padding:0 4px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .action.desktop{display:none}
+  .top-actions .mobilemenu{display:block}
+  .zoom{top:calc(139px + env(safe-area-inset-top,0px));right:calc(10px + env(safe-area-inset-right,0px));left:auto;z-index:5}
+  .status{bottom:calc(80px + env(safe-area-inset-bottom,0px));left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px))}
+  .hint{max-width:min(60vw,270px);padding:9px 10px;font-size:11px}
+  .counter{padding:8px 10px;gap:6px;font-size:10px}
+  .controlpad{display:flex;bottom:calc(154px + env(safe-area-inset-bottom,0px));right:calc(10px + env(safe-area-inset-right,0px));z-index:5}
+  .mobiletools{position:absolute;bottom:0;left:0;right:0;display:flex;gap:5px;overflow-x:auto;padding:7px calc(8px + env(safe-area-inset-right,0px)) calc(7px + env(safe-area-inset-bottom,0px)) calc(8px + env(safe-area-inset-left,0px));background:#142132f5;z-index:3;scrollbar-width:none}
+  .mobiletools::-webkit-scrollbar{display:none}
+  .mobiletools button{border:1px solid #35485b;background:#203246;color:#d6e5e9;border-radius:9px;padding:7px 11px;min-width:59px;min-height:50px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:750}
+  .mobiletools button.active{border-color:#83e0cb;color:#9ff2dc;background:#304840}
+  .mobiletools button em{font-style:normal;font-size:18px}
+  .notice{top:calc(125px + env(safe-area-inset-top,0px));max-width:75%;font-size:11px}
+}
+/* A very short portrait uses a horizontal camera row to clear the D-pad. */
+@media (max-width:690px) and (max-height:620px) and (orientation:portrait) {
+  .zoom{top:calc(137px + env(safe-area-inset-top,0px));left:calc(10px + env(safe-area-inset-left,0px));right:auto;flex-direction:row;align-items:center}
+  .camera-feedback{min-width:47px;padding:10px 4px}
+  .status .counter{display:none}
+}
+/* Horizontal touch tablets have room for one toolbar line and an unobscured stage. */
+@media (min-width:691px) and (min-height:561px) and (max-width:1180px) and (pointer:coarse) {
+  .topbar{display:flex;align-items:center;gap:8px}
+  .world-chip{width:auto;flex:0 1 190px}
+  .top-actions{display:flex;width:auto;flex:0 0 auto;margin-left:auto;gap:6px}
+  .action{min-width:44px;padding:0 10px}
+  .zoom{top:calc(78px + env(safe-area-inset-top,0px))}
+  .notice{top:calc(75px + env(safe-area-inset-top,0px))}
+}
+/* Short, rotated screens: action row, camera row, then gameplay with movement pad.
+   HUD statistics are hidden, but still available in the tools/settings drawer. */
+@media (max-height:560px) and (orientation:landscape) and (pointer:coarse),
+       (max-width:690px) and (max-height:560px) and (orientation:landscape) {
+  .topbar{top:calc(7px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));right:calc(8px + env(safe-area-inset-right,0px));display:grid;grid-template-columns:minmax(92px,28%) minmax(0,1fr);gap:7px;align-items:center}
+  .world-chip{height:44px;min-width:0;width:100%;padding:6px 8px;overflow:hidden}
+  .world-chip b{font-size:11px}
+  .world-chip p{font-size:9px;margin-top:0}
+  .top-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;width:100%;margin:0}
+  .action{min-width:0;min-height:44px;height:44px;padding:0 3px;font-size:clamp(10px,1.6vw,12px)}
+  .zoom{top:calc(65px + env(safe-area-inset-top,0px));left:calc(8px + env(safe-area-inset-left,0px));right:auto;flex-direction:row;align-items:center;gap:5px}
+  .zoom button{width:40px;height:40px;min-width:40px;min-height:40px}
+  .camera-feedback{min-width:43px;padding:9px 3px}
+  .controlpad{bottom:calc(72px + env(safe-area-inset-bottom,0px));right:calc(8px + env(safe-area-inset-right,0px));max-width:202px;gap:5px}
+  .controlpad button{min-width:46px;width:46px;min-height:46px;height:46px}
+  .controlpad .control-label{padding:3px 5px;font-size:10px}
+  .status{display:none}
+  .notice{top:calc(58px + env(safe-area-inset-top,0px));left:61%;max-width:40%}
+  .mobiletools button{min-height:46px}
+}
+/* Tiny views: retain touch targets and remove nonessential button words. */
+@media (max-width:380px) {
+  .top-actions #snapshot .desktopword{display:none}
+  .topbar .world-chip p{font-size:10px}
+  .hint{max-width:190px}
+}
 </style><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="./icon.svg"></head>
 <body><div class="app">
 <aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll"><div class="eyebrow">Create &amp; interact</div><div class="tool-grid" id="toolGrid">
@@ -39,7 +108,7 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: pick two objects. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.4.1</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.4.2</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="zoom" role="group" aria-label="Camera zoom and position"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="recenter" aria-label="Recenter camera" style="font-size:16px">⌖</button><span class="camera-feedback" id="cameraFeedback" aria-live="polite">100%</span></div>
@@ -293,9 +362,11 @@ function ensureControlledFigure(){
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
 }
-function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(window.innerWidth<691)$('sidebar').classList.remove('open')}
+function isCompactLayout(){return window.matchMedia?window.matchMedia('(max-width: 690px), (max-width: 1180px) and (pointer: coarse)').matches:window.innerWidth<=690}
+function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(isCompactLayout())$('sidebar').classList.remove('open')}
 function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=state.paused?'Simulation paused':'Everything is an experiment.'}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
+function syncLayout(){resize();var compact=isCompactLayout();$('openMenu').classList.toggle('hidden',!compact);if(!compact)$('sidebar').classList.remove('open')}
 function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width);height=Math.max(100,r.height);dpr=Math.min(window.devicePixelRatio||1,limits[profile].dpr);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680));updateCameraFeedback()}
 function updateCameraFeedback(){var label=$('cameraFeedback');if(label)label.textContent=Math.round(cam.z*100)+'%'}
@@ -447,7 +518,7 @@ function draw(){ctx.clearRect(0,0,width,height);backdrop();ctx.save();ctx.transl
  world.links.forEach(drawLink);world.parts.forEach(drawPart);
  // Names are painted on Canvas (never HTML), limited by the active performance profile.
  if(world.aiEnabled){var names=0;for(var i=0;i<world.groups.length&&names<limits[profile].agents;i++){var g=world.groups[i],head=g.ai?findPart(g.head):null;if(!head)continue;names++;ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#152c36';ctx.fillText(g.name,head.x,head.y-26);ctx.fillStyle=g.intent==='avoid'?'#bf574f':'#277d70';ctx.font='10px system-ui';ctx.fillText(g.intent||g.mode,head.x,head.y-14)}ctx.textAlign='start'}
- drawSelection();ctx.restore();if(state.paused){ctx.fillStyle='#172338aa';roundedRect(width/2-62,12,124,28,10);ctx.fill();ctx.fillStyle='white';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText('Ⅱ  PAUSED',width/2,31);ctx.textAlign='start'}}
+ drawSelection();ctx.restore();/* Pause state is already shown in the toolbar and world chip. No canvas badge may cover controls. */}
 function loop(now){if(!state.lastFrame)state.lastFrame=now;var dt=Math.min(.06,(now-state.lastFrame)/1000);state.lastFrame=now;if(!state.paused){state.acc+=dt*options.speed;var steps=0;while(state.acc>=STEP&&steps<4){simulate();state.acc-=STEP;steps++}if(steps===4)state.acc=0}else state.acc=0;
  draw();state.frames++;state.fpsTime+=dt;if(state.fpsTime>.75){state.fps=state.frames/state.fpsTime;state.fpsTime=0;state.frames=0;updateCounts();if(options.quality==='auto'&&profile==='standard'){lowFpsSec=state.fps<27?lowFpsSec+.75:Math.max(0,lowFpsSec-.75);if(lowFpsSec>6){profile='eco';resize();toast('Eco physics enabled for smoother play')}}}requestAnimationFrame(loop)}
 function hitTest(x,y){for(var i=world.parts.length-1;i>=0;i--){var p=world.parts[i],r=reach(p);if(p.kind==='box'){var loc=toLocal(p,x,y);if(Math.abs(loc.x)<p.w/2+11&&Math.abs(loc.y)<p.h/2+11)return p}else if(Math.hypot(p.x-x,p.y-y)<Math.max(15,p.r+12))return p}return null}
@@ -550,10 +621,10 @@ function controls(){document.querySelectorAll('[data-level]').forEach(function(b
  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',cancel);
  b.addEventListener('touchstart',press,{passive:false});b.addEventListener('touchend',up);b.addEventListener('touchcancel',cancel);
 });
- window.addEventListener('resize',function(){resize()})
+ window.addEventListener('resize',syncLayout);if(window.visualViewport&&window.visualViewport.addEventListener)window.visualViewport.addEventListener('resize',syncLayout);window.addEventListener('orientationchange',syncLayout)
 }
 // Initialize with no prompts or login; animation starts immediately.
-controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();if(window.innerWidth<=690){$('openMenu').classList.remove('hidden')};window.addEventListener('resize',function(){$('openMenu').classList.toggle('hidden',window.innerWidth>690)});requestAnimationFrame(loop);
+controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();syncLayout();requestAnimationFrame(loop);
 window.StickLab={getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true)},step:simulate};
 })();
 </script><script>if((location.protocol==='https:'||location.hostname==='localhost')&&'serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(){})}</script></body></html>
