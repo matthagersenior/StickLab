@@ -208,3 +208,59 @@ test('top bar pause and step remain functional after mobile control setup',()=>{
  nodes.pause.onclick();
  assert.equal(api.getState().paused,false);
 });
+
+function tapAtWorld(api,nodes,x,y,id){
+ const cam=api.getCamera(),cx=500+(x-cam.x)*cam.z,cy=350+(y-cam.y)*cam.z;
+ const ev={pointerType:'touch',pointerId:id||41,clientX:cx,clientY:cy,preventDefault(){}};
+ nodes.canvas.listeners.pointerdown(ev);nodes.canvas.listeners.pointerup(ev);
+}
+test('Detach tool releases one rope without deleting either anchor or other connections',()=>{
+ const {api,nodes}=engine(true);
+ api.importScene({format:'StickLab',version:4,world:{title:'Connections',parts:[
+ {id:1,kind:'anchor',x:700,y:700,r:9,fixed:true},
+ {id:2,kind:'anchor',x:1000,y:700,r:9,fixed:true},
+ {id:3,kind:'ball',x:850,y:750,r:24}
+ ],links:[
+ {id:4,a:1,b:3,type:'rope',len:158,k:.9},
+ {id:5,a:2,b:3,type:'spring',len:158,k:.3}
+ ],groups:[]}});
+ api.setTool('detach');
+ tapAtWorld(api,nodes,760,720);
+ const after=api.getWorld();
+ assert.deepEqual(after.links.map(l=>l.id),[5],'only tapped connector should be removed');
+ assert.equal(after.parts.length,3,'anchors and ball must remain');
+ nodes.undo.onclick();
+ assert.equal(api.getWorld().links.length,2,'Detach must be undoable');
+});
+test('Detach tapping a fixed purple anchor releases its attached connectors but keeps the anchor',()=>{
+ const {api,nodes}=engine(true);
+ api.importScene({format:'StickLab',version:4,world:{parts:[
+ {id:1,kind:'anchor',x:700,y:700,r:9,fixed:true},
+ {id:2,kind:'ball',x:800,y:700,r:24},
+ {id:3,kind:'ball',x:800,y:800,r:24}
+ ],links:[
+ {id:4,a:1,b:2,type:'rope',len:100,k:.9},
+ {id:5,a:1,b:3,type:'spring',len:140,k:.4}
+ ],groups:[]}});
+ api.setTool('detach');tapAtWorld(api,nodes,700,700);
+ assert.equal(api.getWorld().links.length,0);
+ assert.equal(api.getWorld().parts.length,3);
+});
+test('Detaching an empty area or ragdoll skeleton does not delete entities',()=>{
+ const {api,nodes}=engine(true);
+ api.createWorld('empty');api.spawnResident(850,700);api.setTool('detach');
+ const before=api.getWorld();
+ tapAtWorld(api,nodes,835,640);tapAtWorld(api,nodes,1500,400);
+ assert.equal(api.getWorld().links.length,before.links.length);
+ assert.equal(api.getWorld().parts.length,before.parts.length);
+});
+test('Pin tool creates additional new fixed anchor points throughout the world',()=>{
+ const {api,nodes}=engine(true);
+ api.createWorld('empty');api.setTool('anchor');
+ tapAtWorld(api,nodes,740,570);
+ tapAtWorld(api,nodes,980,610);
+ const pts=api.getWorld().parts.filter(p=>p.kind==='anchor');
+ assert.equal(pts.length,2);
+ assert.ok(pts.every(p=>p.fixed));
+ assert.ok(pts[0].id!==pts[1].id);
+});

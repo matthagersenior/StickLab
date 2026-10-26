@@ -1,5 +1,5 @@
 /* StickLab cache policy: refresh online pages, retain a complete offline fallback. */
-var CACHE='sticklab-v04-orientation-20261026',ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg'];
+var CACHE='sticklab-v04-detach-20261026',ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg'];
 self.addEventListener('install',function(e){
  e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS)}).then(function(){return self.skipWaiting()}))
 });
