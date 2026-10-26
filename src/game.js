@@ -45,6 +45,7 @@ function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
+function updateControlHint(){var label=$('controlHint');if(!label)return;var g=selectedResident();label.textContent=g?'Controlling: '+(g.name||'Figure'):'Arrows select a figure'}
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
@@ -53,18 +54,34 @@ function updateResidents(){
  $('releaseResident').disabled=!g;
  $('residentMode').disabled=!g||!g.ai;
  $('applyResidentMode').disabled=!g||!g.ai;
+ updateControlHint();
 }
 function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
 function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
 function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
 function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0)return false;g.mode=mode;g.intent=mode;g.brain=null;updateResidents();return true}
+function ensureControlledFigure(){
+ var selected=selectedResident();if(selected)return selected;
+ var best=null,bestScore=Infinity;
+ for(var i=0;i<world.groups.length;i++){var g=world.groups[i],hip=findPart(g.hip);if(!hip||hip.fixed)continue;
+  var visible=Math.abs(hip.x-cam.x)<width/(2*cam.z)&&Math.abs(hip.y-cam.y)<height/(2*cam.z);
+  var score=(visible?0:600)+(g.ai?0:160)+Math.hypot(hip.x-cam.x,hip.y-cam.y)*.25;
+  if(score<bestScore){best=g;bestScore=score}
+ }
+ if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
+ state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
+ var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
+ updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
+ return best;
+}
 function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(window.innerWidth<691)$('sidebar').classList.remove('open')}
 function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=state.paused?'Simulation paused':'Everything is an experiment.'}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
 function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width);height=Math.max(100,r.height);dpr=Math.min(window.devicePixelRatio||1,limits[profile].dpr);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
-function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680))}
+function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680));updateCameraFeedback()}
+function updateCameraFeedback(){var label=$('cameraFeedback');if(label)label.textContent=Math.round(cam.z*100)+'%'}
 function worldPoint(cx,cy){var r=canvas.getBoundingClientRect();return {x:cam.x+((cx-r.left)-width/2)/cam.z,y:cam.y+((cy-r.top)-height/2)/cam.z}}
-function zoom(factor,atX,atY){var before=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.z=Math.max(.24,Math.min(2.5,cam.z*factor));var after=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.x+=before.x-after.x;cam.y+=before.y-after.y}
+function zoom(factor,atX,atY){var before=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.z=Math.max(.24,Math.min(2.5,cam.z*factor));var after=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.x+=before.x-after.x;cam.y+=before.y-after.y;updateCameraFeedback()}
 function newWorld(which){var keepAI=world.aiEnabled!==false;challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:keepAI,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
  if(which==='playground'){
  block(770,FLOOR-32,102,64,true,'#aebbb7');block(880,FLOOR-29,60,58,false,COLORS.orange);block(880,FLOOR-91,60,58,false,COLORS.orange);block(954,FLOOR-25,50,50,false,COLORS.orange);var hanging=figure(730,FLOOR-176);var hanger=anchor(730,370);if(hanging){var hangingGroup=findGroup(hanging.group);link(hanger,findPart(hangingGroup.head),'rope',270,.96)}resident(1100,FLOOR-76);
@@ -289,7 +306,7 @@ function screenshot(){try{var a=document.createElement('a');a.download='StickLab
 function importFile(file){if(!file)return;if(file.size>1500000){toast('Scene file is too large');return}var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);assignWorld(d,true);toast('Scene imported successfully')}catch(e){toast('Invalid StickLab scene file')}};reader.onerror=function(){toast('File could not be read')};reader.readAsText(file)}
 function modal(open){$('modalWrap').classList.toggle('open',open)}
 function controls(){document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){newWorld('playground')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){newWorld(b.dataset.scene);$('sidebar').classList.remove('open')})});
- $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25)};$('zoomOut').onclick=function(){zoom(.8)};$('recenter').onclick=function(){defaultCamera()};
+ $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25);toast('Zoom '+Math.round(cam.z*100)+'%')};$('zoomOut').onclick=function(){zoom(.8);toast('Zoom '+Math.round(cam.z*100)+'%')};$('recenter').onclick=function(){defaultCamera();toast('View centered · '+Math.round(cam.z*100)+'%')};
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
@@ -300,10 +317,23 @@ function controls(){document.querySelectorAll('[data-level]').forEach(function(b
  $('openMenu').onclick=function(){$('sidebar').classList.toggle('open')};
  window.addEventListener('keydown',function(e){var tag=e.target.tagName;if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA')return;var k=e.key.toLowerCase();if(k>='1'&&k<='9'&&k.length===1){var ts=['grab','figure','box','ball','anchor','rope','spring','erase','hinge'];setTool(ts[+k-1]);return}if(k==='arrowleft'||k==='a'){state.keys.left=true;e.preventDefault()}else if(k==='arrowright'||k==='d'){state.keys.right=true;e.preventDefault()}else if(k==='arrowup'||k==='w'){state.keys.jump=true;e.preventDefault()}else if(k===' '){e.preventDefault();var p=findPart(state.selected);if(p&&p.group){state.keys.jump=true}else{state.paused=!state.paused;updatePause()}}else if(k==='p'){state.paused=!state.paused;updatePause()}else if(k==='.'){state.paused=true;simulate();updatePause()}else if(k==='delete'||k==='backspace'){erase(findPart(state.selected));e.preventDefault()}else if(k==='escape'){state.linkStart=null;state.linkPoint=null;modal(false);$('sidebar').classList.remove('open')}else if(k==='z'&&(e.ctrlKey||e.metaKey)){undo();e.preventDefault()}});
  window.addEventListener('keyup',function(e){var k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')state.keys.left=false;if(k==='arrowright'||k==='d')state.keys.right=false;if(k==='arrowup'||k==='w')state.keys.jump=false});
- document.querySelectorAll('[data-hold]').forEach(function(b){function up(e){if(e)e.preventDefault();state.keys[b.dataset.hold]=false}b.addEventListener('pointerdown',function(e){e.preventDefault();try{b.setPointerCapture(e.pointerId)}catch(_){}state.keys[b.dataset.hold]=true});b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('pointerleave',up);b.addEventListener('touchstart',function(e){e.preventDefault();state.keys[b.dataset.hold]=true},{passive:false});b.addEventListener('touchend',up)});
+ document.querySelectorAll('[data-hold]').forEach(function(b){
+ function press(e){if(e&&e.preventDefault)e.preventDefault();if(!ensureControlledFigure())return;
+  if(state.paused){state.paused=false;updatePause()}
+  state.keys[b.dataset.hold]=true;
+ }
+ function up(e){if(e&&e.preventDefault)e.preventDefault();
+  // A quick tap on Jump must survive until the next simulation tick.
+  if(b.dataset.hold!=='jump')state.keys[b.dataset.hold]=false;
+ }
+ function cancel(e){if(e&&e.preventDefault)e.preventDefault();state.keys[b.dataset.hold]=false}
+ b.addEventListener('pointerdown',function(e){press(e);try{b.setPointerCapture(e.pointerId)}catch(_){}});
+ b.addEventListener('pointerup',up);b.addEventListener('pointercancel',cancel);
+ b.addEventListener('touchstart',press,{passive:false});b.addEventListener('touchend',up);b.addEventListener('touchcancel',cancel);
+});
  window.addEventListener('resize',function(){resize()})
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();if(window.innerWidth<=690){$('openMenu').classList.remove('hidden')};window.addEventListener('resize',function(){$('openMenu').classList.toggle('hidden',window.innerWidth>690)});requestAnimationFrame(loop);
-window.StickLab={getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true)},step:simulate};
+window.StickLab={getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true)},step:simulate};
 })();
