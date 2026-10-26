@@ -5,7 +5,9 @@ function engine(pointer){
  const nodes={},noop=()=>{};
  function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},listeners:{},addEventListener:function(name,fn){this.listeners[name]=fn},setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
  const holdButtons=['left','jump','right'].map(function(name){var btn=el('hold-'+name);btn.dataset.hold=name;return btn});
- const storage={};const context={document:{getElementById:el,querySelectorAll(selector){return selector==='[data-hold]'?holdButtons:[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
+ const modes=[['Sandbox','sandbox'],['Puzzles','puzzles'],['Builder','builder'],['Destruction','destruction'],['Living','living']].map(function(pair){var btn=el('modeCards'+pair[0]);btn.dataset.playMode=pair[1];return btn});
+ const levels=[0,1,2].map(function(n){var btn=el('mode-level-'+n);btn.dataset.modeLevel=String(n);return btn});
+ const storage={};const context={document:{getElementById:el,querySelectorAll(selector){return selector==='[data-hold]'?holdButtons:selector==='[data-play-mode]'?modes:selector==='[data-mode-level]'?levels:[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
  vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/inhabitants.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
  return{api:context.window.StickLab,nodes,storage};
 }
@@ -274,7 +276,7 @@ test('optional challenge starts explicitly and returning preserves the sandbox c
  assert.equal(api.startLevel(0),true);
  assert.equal(api.getState().challenge.index,0);
  assert.match(nodes.missionObjective.textContent,/blue|ball|goal/i,'must show a visible goal instruction');
- assert.match(nodes.challengeAction.textContent,/level|challenge|goal/i,'mode switch must stay visible');
+ assert.match(nodes.challengeAction.textContent,/game|mode/i,'game-type switch must stay visible');
  assert.equal(api.exitChallenge(),true,'player must be able to exit voluntarily');
  assert.equal(api.getState().challenge,null);
  assert.equal(api.getWorld().groups.length,saved.groups.length,'original sandbox inhabitants must return');
