@@ -74,9 +74,11 @@ function ensureControlledFigure(){
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
 }
-function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(window.innerWidth<691)$('sidebar').classList.remove('open')}
+function isCompactLayout(){return window.matchMedia?window.matchMedia('(max-width: 690px), (max-width: 1180px) and (pointer: coarse)').matches:window.innerWidth<=690}
+function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});$('hint').innerHTML=toolHints[name];if(isCompactLayout())$('sidebar').classList.remove('open')}
 function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=state.paused?'Simulation paused':'Everything is an experiment.'}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
+function syncLayout(){resize();var compact=isCompactLayout();$('openMenu').classList.toggle('hidden',!compact);if(!compact)$('sidebar').classList.remove('open')}
 function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width);height=Math.max(100,r.height);dpr=Math.min(window.devicePixelRatio||1,limits[profile].dpr);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
 function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,width/(width<700?850:1080),height/680));updateCameraFeedback()}
 function updateCameraFeedback(){var label=$('cameraFeedback');if(label)label.textContent=Math.round(cam.z*100)+'%'}
@@ -228,7 +230,7 @@ function draw(){ctx.clearRect(0,0,width,height);backdrop();ctx.save();ctx.transl
  world.links.forEach(drawLink);world.parts.forEach(drawPart);
  // Names are painted on Canvas (never HTML), limited by the active performance profile.
  if(world.aiEnabled){var names=0;for(var i=0;i<world.groups.length&&names<limits[profile].agents;i++){var g=world.groups[i],head=g.ai?findPart(g.head):null;if(!head)continue;names++;ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#152c36';ctx.fillText(g.name,head.x,head.y-26);ctx.fillStyle=g.intent==='avoid'?'#bf574f':'#277d70';ctx.font='10px system-ui';ctx.fillText(g.intent||g.mode,head.x,head.y-14)}ctx.textAlign='start'}
- drawSelection();ctx.restore();if(state.paused){ctx.fillStyle='#172338aa';roundedRect(width/2-62,12,124,28,10);ctx.fill();ctx.fillStyle='white';ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText('Ⅱ  PAUSED',width/2,31);ctx.textAlign='start'}}
+ drawSelection();ctx.restore();/* Pause state is already shown in the toolbar and world chip. No canvas badge may cover controls. */}
 function loop(now){if(!state.lastFrame)state.lastFrame=now;var dt=Math.min(.06,(now-state.lastFrame)/1000);state.lastFrame=now;if(!state.paused){state.acc+=dt*options.speed;var steps=0;while(state.acc>=STEP&&steps<4){simulate();state.acc-=STEP;steps++}if(steps===4)state.acc=0}else state.acc=0;
  draw();state.frames++;state.fpsTime+=dt;if(state.fpsTime>.75){state.fps=state.frames/state.fpsTime;state.fpsTime=0;state.frames=0;updateCounts();if(options.quality==='auto'&&profile==='standard'){lowFpsSec=state.fps<27?lowFpsSec+.75:Math.max(0,lowFpsSec-.75);if(lowFpsSec>6){profile='eco';resize();toast('Eco physics enabled for smoother play')}}}requestAnimationFrame(loop)}
 function hitTest(x,y){for(var i=world.parts.length-1;i>=0;i--){var p=world.parts[i],r=reach(p);if(p.kind==='box'){var loc=toLocal(p,x,y);if(Math.abs(loc.x)<p.w/2+11&&Math.abs(loc.y)<p.h/2+11)return p}else if(Math.hypot(p.x-x,p.y-y)<Math.max(15,p.r+12))return p}return null}
@@ -331,9 +333,9 @@ function controls(){document.querySelectorAll('[data-level]').forEach(function(b
  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',cancel);
  b.addEventListener('touchstart',press,{passive:false});b.addEventListener('touchend',up);b.addEventListener('touchcancel',cancel);
 });
- window.addEventListener('resize',function(){resize()})
+ window.addEventListener('resize',syncLayout);if(window.visualViewport&&window.visualViewport.addEventListener)window.visualViewport.addEventListener('resize',syncLayout);window.addEventListener('orientationchange',syncLayout)
 }
 // Initialize with no prompts or login; animation starts immediately.
-controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();if(window.innerWidth<=690){$('openMenu').classList.remove('hidden')};window.addEventListener('resize',function(){$('openMenu').classList.toggle('hidden',window.innerWidth>690)});requestAnimationFrame(loop);
+controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();syncLayout();requestAnimationFrame(loop);
 window.StickLab={getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true)},step:simulate};
 })();
