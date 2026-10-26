@@ -63,3 +63,13 @@ test('steel construction material survives an export and reload through normaliz
  const before=api.getWorld();api.importScene({format:'StickLab',version:3,world:before});
  assert.equal(api.getWorld().parts[0].material,'steel');
 });
+
+test('undo inside a challenge retains the active goal and target',()=>{
+ const {api,nodes}=engine(true);api.startLevel(0);api.setTool('box');
+ const before=api.getWorld().parts.length;
+ const e={pointerType:'touch',pointerId:9,clientX:400,clientY:370,preventDefault(){}};
+ nodes.canvas.listeners.pointerdown(e);nodes.canvas.listeners.pointerup(e);
+ assert.equal(api.getWorld().parts.length,before+1);
+ nodes.undo.onclick();assert.equal(api.getWorld().parts.length,before);
+ assert.equal(api.getState().challenge.index,0);
+});
