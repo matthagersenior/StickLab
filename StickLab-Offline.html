@@ -109,9 +109,37 @@
 @media (max-height:620px) and (pointer:coarse),(max-height:620px) and (max-width:690px){
  .mission-objective{display:none}
 }
+
+/* Real game-type selection: readable in the narrow Android drawer and on desktop. */
+#gameModeSection{scroll-margin-top:10px}
+.game-intro{margin:7px 0 12px;line-height:1.45}
+.game-grid{display:grid;grid-template-columns:1fr;gap:7px;margin:9px 0 13px}
+.game-card{width:100%;min-height:62px;display:flex;align-items:center;gap:11px;padding:9px 11px;text-align:left;background:#203144;color:#e4f3f4;border:1px solid #374c60;border-radius:12px;cursor:pointer;touch-action:manipulation;transition:background .1s,border-color .1s}
+.game-card .game-symbol{width:36px;min-width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:23px;background:#152536;border:1px solid #3d596a;border-radius:10px}
+.game-card b{display:block;font-size:13px;line-height:1.35}
+.game-card small{display:block;font-size:11px;color:#a4bacc;line-height:1.4;margin-top:2px}
+.game-card.active,.game-card[aria-pressed="true"]{background:#284a43;border:2px solid #83e0cb;padding:8px 10px}
+.game-card.active .game-symbol{background:#163a36;color:#b5fbe4}
+.game-card:focus-visible{outline:3px solid #ffad65;outline-offset:2px}
+.game-mode-status{font-size:11px;color:#b7e8d8;line-height:1.45;border-left:3px solid #83e0cb;padding:7px 10px;margin:0 0 17px;background:#182d35;border-radius:4px}
+@media (max-width:690px),(max-width:1180px) and (pointer:coarse) {
+ .top-actions .challenge-action{font-size:11px;white-space:nowrap;min-width:0}
+ .game-card{min-height:64px}
+}
 </style></head>
 <body><div class="app">
-<aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll"><div class="eyebrow">Create &amp; interact</div><div class="tool-grid" id="toolGrid">
+<aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll">
+<div class="eyebrow" id="gameModeSection">Choose Your Game</div>
+<p class="fineprint game-intro">Pick how you want to play. Physics Challenges have goals; the other modes are open-ended experiments.</p>
+<div class="game-grid" role="group" aria-label="Choose a StickLab game mode">
+<button type="button" class="game-card active" data-game="sandbox" aria-pressed="true"><span class="game-symbol">◎</span><span><b>Free Sandbox</b><small>Build and experiment freely</small></span></button>
+<button type="button" class="game-card" data-game="puzzles" aria-pressed="false"><span class="game-symbol">🎯</span><span><b>Physics Puzzles</b><small>Solve levels and unlock more</small></span></button>
+<button type="button" class="game-card" data-game="engineering" aria-pressed="false"><span class="game-symbol">⚙</span><span><b>Engineering Lab</b><small>Build vehicles and machines</small></span></button>
+<button type="button" class="game-card" data-game="chaos" aria-pressed="false"><span class="game-symbol">✴</span><span><b>Ragdoll Chaos</b><small>Impact, destruction and experiments</small></span></button>
+<button type="button" class="game-card" data-game="living" aria-pressed="false"><span class="game-symbol">☺</span><span><b>Living World</b><small>Watch and control AI figures</small></span></button>
+</div>
+<p id="gameModeStatus" class="game-mode-status" aria-live="polite">Now playing: Free Sandbox · No required objective</p>
+<div class="eyebrow">Create &amp; interact</div><div class="tool-grid" id="toolGrid">
 <button class="tool active" data-tool="grab" aria-pressed="true"><span class="glyph">↖</span>Grab <kbd>1</kbd></button><button class="tool" data-tool="figure"><span class="glyph">♙</span>Ragdoll <kbd>2</kbd></button><button class="tool" data-tool="living"><span class="glyph">☺</span>Resident</button>
 <button class="tool" data-tool="box"><span class="glyph">▣</span>Box <kbd>3</kbd></button><button class="tool" data-tool="ball"><span class="glyph">●</span>Ball <kbd>4</kbd></button>
 <button class="tool" data-tool="anchor"><span class="glyph">⊕</span>Anchor <kbd>5</kbd></button><button class="tool" data-tool="rope"><span class="glyph">⌁</span>Rope <kbd>6</kbd></button>
@@ -127,16 +155,16 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.4.4</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.0</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
-<div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose an optional physics challenge">🎯 Levels</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
+<div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
 <div class="zoom" role="group" aria-label="Camera zoom and position"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="recenter" aria-label="Recenter camera" style="font-size:16px">⌖</button><span class="camera-feedback" id="cameraFeedback" aria-live="polite">100%</span></div>
 <div id="notice" class="notice" role="status" aria-live="polite"></div>
 <div class="status"><div class="hint" id="hint"><b>Grab &amp; play.</b> Drag objects, or choose a tool to create something.</div><div class="counter"><div>OBJECTS <span id="objectCount">0</span></div><div>FPS <span id="fps">60</span></div></div></div>
 <div class="controlpad" id="controlpad" role="group" aria-label="Figure movement controls"><span class="control-label" id="controlHint" role="status">Arrows select a figure</span><button type="button" data-hold="left" aria-label="Select figure and move left">◀</button><button type="button" data-hold="jump" aria-label="Select figure and jump">↑</button><button type="button" data-hold="right" aria-label="Select figure and move right">▶</button></div>
 <div class="mobiletools" id="mobileTools"><button data-tool="grab" class="active"><em>↖</em>Grab</button><button data-tool="figure"><em>♙</em>Ragdoll</button><button data-tool="living"><em>☺</em>Resident</button><button data-tool="box"><em>▣</em>Box</button><button data-tool="ball"><em>●</em>Ball</button><button data-tool="anchor"><em>⊕</em>Pin</button><button data-tool="rope"><em>⌁</em>Rope</button><button data-tool="spring"><em>〽</em>Spring</button><button data-tool="hinge"><em>⚙</em>Hinge</button><button data-tool="detach"><em>✂</em>Detach</button><button data-tool="wheel"><em>◉</em>Wheel</button><button data-tool="cart"><em>▰</em>Cart</button><button data-tool="motor"><em>⚡</em>Motor</button><button data-tool="erase"><em>⌫</em>Erase</button></div>
-<div id="modalWrap" class="modalwrap" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" id="closeModal" aria-label="Close">×</button><h2 id="modalTitle">Welcome to StickLab</h2><p>Build a little world. Watch its physics. Then see what happens when you interfere.</p><ul><li><b>Grab:</b> drag figures, objects or empty space to pan.</li><li><b>Build:</b> place boxes, balls, anchors and articulated stick figures.</li><li><b>Connect:</b> tap two objects with Rope or Spring selected. Anchors make fixed suspension points.</li><li><b>Live:</b> place a Resident to explore, investigate, avoid hazards and help with experiments. Select one using Grab to take over, then Release to resume its decisions.</li><li><b>Play:</b> tap a stick figure in Grab mode; move with A/D or arrows, jump with W/↑/space. On touch, use the on-screen buttons.</li><li><b>Tools:</b> keys 1–8 switch tools. Scroll to zoom. Space pauses when no figure is being controlled.</li><li><b>Optional levels:</b> use the visible 🎯 Levels button to pick a physics challenge. Move the blue ball into the green goal, then return to your preserved sandbox whenever you like.</li><li><b>Keep it:</b> Save/Load use device storage; Export/Import transfer scenes between devices.</li></ul><div class="modalactions"><button id="startGame">Start experimenting</button><button class="secondary" id="helpClose">Close</button></div></section></div>
+<div id="modalWrap" class="modalwrap" role="presentation"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><button class="close" id="closeModal" aria-label="Close">×</button><h2 id="modalTitle">Welcome to StickLab</h2><p>Build a little world. Watch its physics. Then see what happens when you interfere.</p><ul><li><b>Grab:</b> drag figures, objects or empty space to pan.</li><li><b>Build:</b> place boxes, balls, anchors and articulated stick figures.</li><li><b>Connect:</b> tap two objects with Rope or Spring selected. Anchors make fixed suspension points.</li><li><b>Live:</b> place a Resident to explore, investigate, avoid hazards and help with experiments. Select one using Grab to take over, then Release to resume its decisions.</li><li><b>Play:</b> tap a stick figure in Grab mode; move with A/D or arrows, jump with W/↑/space. On touch, use the on-screen buttons.</li><li><b>Tools:</b> keys 1–8 switch tools. Scroll to zoom. Space pauses when no figure is being controlled.</li><li><b>Game Modes:</b> use the visible 🎮 Games button to choose Sandbox, Physics Puzzles, Engineering, Ragdoll Chaos or Living World. These are different starting worlds with the same physics tools.</li><li><b>Optional levels:</b> choose Physics Puzzles, then pick a level. Move the blue ball into the green goal, then return to your preserved sandbox whenever you like.</li><li><b>Keep it:</b> Save/Load use device storage; Export/Import transfer scenes between devices.</li></ul><div class="modalactions"><button id="startGame">Start experimenting</button><button class="secondary" id="helpClose">Close</button></div></section></div>
 </main></div><script>/* StickLab v0.2 simulation utilities — dependency-free UMD for browsers and tests. */
 (function(root){'use strict';
 function finite(n){return typeof n==='number'&&isFinite(n)}
@@ -322,7 +350,14 @@ var W=2200,H=1150,FLOOR=930,STEP=1/60;
 var world={parts:[],links:[],groups:[],next:1,title:'The Playground',aiEnabled:true};var partIndex={};
 var options={gravity:780,speed:1,bounce:.35,quality:'auto',material:'wood'};
 var limits={eco:{objects:85,iterations:3,dpr:1,agents:2,think:30},standard:{objects:180,iterations:5,dpr:1.5,agents:5,think:18},high:{objects:320,iterations:7,dpr:2,agents:8,think:12}};
-var profile='standard',lowFpsSec=0,challenge=null,sandboxResume=null,unlocked=1;
+var profile='standard',lowFpsSec=0,challenge=null,sandboxResume=null,unlocked=1,gameMode='sandbox',gameReturn=null;
+var GAME_MODES=[
+ {id:'sandbox',name:'Free Sandbox',summary:'No required objective'},
+ {id:'puzzles',name:'Physics Puzzles',summary:'Choose an optional physics challenge'},
+ {id:'engineering',name:'Engineering Lab',summary:'Build wheels, motors and machines'},
+ {id:'chaos',name:'Ragdoll Chaos',summary:'Explore ragdoll impact and destruction'},
+ {id:'living',name:'Living World',summary:'Explore a world of autonomous stick figures'}
+];
 try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getItem('sticklab_challenge_unlocks_v03'),10)||1))}catch(e){}
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
 var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
@@ -384,7 +419,11 @@ function ensureControlledFigure(){
 }
 function isCompactLayout(){return window.matchMedia?window.matchMedia('(max-width: 690px), (max-width: 1180px) and (pointer: coarse)').matches:window.innerWidth<=690}
 function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();if(isCompactLayout())$('sidebar').classList.remove('open')}
-function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=challenge?('🎯 Level '+(challenge.index+1)+' · Ball → goal'+(state.paused?' · Paused':'')):(state.paused?'Free Sandbox · Paused':'Free Sandbox · Optional levels')}
+function updatePause(){
+ $('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';
+ var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];
+ $('subTitle').textContent=challenge?('🎯 Level '+(challenge.index+1)+' · Ball → goal'+(state.paused?' · Paused':'')):(mode.name+(state.paused?' · Paused':' · '+mode.summary));
+}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
 function syncLayout(){resize();var compact=isCompactLayout();$('openMenu').classList.toggle('hidden',!compact);if(!compact)$('sidebar').classList.remove('open')}
 function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width);height=Math.max(100,r.height);dpr=Math.min(window.devicePixelRatio||1,limits[profile].dpr);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
@@ -404,23 +443,76 @@ function newWorld(which){var keepAI=world.aiEnabled!==false;if(which!=='empty')s
  for(var j=0;j<4;j++)figure(600+j*145,400-j*35,j<2);
  for(var k=0;k<10;k++)ball(620+k*65,240+(k%3)*62,16+(k%4)*6,k%2?COLORS.pink:COLORS.aqua);
  for(var n=0;n<7;n++)block(700+n*85,680-(n%3)*80,62,48,false,COLORS.orange);
+ }else if(which==='engineering'){
+ world.title='Engineering Lab';
+ block(690,FLOOR-22,215,44,true,'#aebbb7');
+ cart(865,FLOOR-55);
+ wheel(1110,FLOOR-33,false);
+ block(1260,FLOOR-110,170,22,true,'#aebbb7');
+ anchor(1270,FLOOR-240);
+ block(1435,FLOOR-44,66,88,false,COLORS.orange);
+ }else if(which==='living'){
+ world.title='Living World';world.aiEnabled=true;
+ block(690,FLOOR-22,130,44,true,'#aebbb7');
+ block(1250,FLOOR-24,160,48,true,'#aebbb7');
+ ball(950,FLOOR-29,30,COLORS.aqua);
+ ball(1130,FLOOR-25,25,COLORS.pink);
+ wheel(1430,FLOOR-28,false);
+ resident(610,FLOOR-90);resident(780,FLOOR-90);resident(1170,FLOOR-90);resident(1470,FLOOR-90);
+ if(world.groups[0])world.groups[0].mode='help';
  }
  $('worldTitle').textContent=world.title;defaultCamera();updateCounts();updateChallenges();updateResidents();toast(world.title+' loaded')}
 function updateToolHint(){var hint=$('hint');if(!hint)return;
  if(challenge){var level=Levels.levels[challenge.index];hint.innerHTML='<b>🎯 LEVEL '+(challenge.index+1)+'/'+Levels.levels.length+': '+(challenge.won?'COMPLETE!': 'Move blue ball to green goal.')+'</b> '+(challenge.won?'Open Levels for the next challenge or return to Free Sandbox.':'Keep the ball completely inside the goal until it settles.')+' <span class="hint-tool">'+(toolHints[state.tool]||'')+'</span>'}
  else hint.innerHTML=toolHints[state.tool]||'';
 }
+function updateGameModes(){
+ var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];
+ document.querySelectorAll('[data-game]').forEach(function(b){
+  var active=b.dataset.game===gameMode;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false');
+ });
+ var status=$('gameModeStatus');if(status)status.textContent='Now playing: '+mode.name+' · '+mode.summary;
+ updatePause();
+}
+function selectGameMode(which){
+ var valid=GAME_MODES.some(function(mode){return mode.id===which});if(!valid)return false;
+ if(which==='sandbox'){
+  if(challenge)exitChallenge();
+  var snapshot=gameReturn;gameReturn=null;
+  if(snapshot){
+   assignWorld({format:'StickLab',version:4,world:snapshot.world},true);
+   state.paused=snapshot.paused;cam.x=snapshot.camera.x;cam.y=snapshot.camera.y;cam.z=snapshot.camera.z;
+   updateCameraFeedback();$('worldTitle').textContent=world.title;
+  }
+  gameMode='sandbox';updateGameModes();updateChallenges();toast('Free Sandbox · your creation is available');return true;
+ }
+ if(gameMode==='sandbox'&&!gameReturn)gameReturn={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};
+ if(challenge&&which!=='puzzles')exitChallenge();
+ if(which==='puzzles'){
+  gameMode='puzzles';updateGameModes();updateChallenges();
+  var levels=$('challengeSection');if(levels&&levels.scrollIntoView)levels.scrollIntoView({block:'center'});
+  toast('Physics Puzzles · choose an unlocked level to start');
+ }else{
+  if(which==='engineering')newWorld('engineering');
+  else if(which==='chaos')newWorld('chaos');
+  else if(which==='living')newWorld('living');
+  gameMode=which;state.paused=false;updatePause();updateGameModes();updateChallenges();
+  toast(GAME_MODES.filter(function(mode){return mode.id===which})[0].name+' · experiment freely');
+ }
+ if(isCompactLayout()&&which!=='puzzles')$('sidebar').classList.remove('open');
+ return true;
+}
 function updateChallenges(){
  var buttons=document.querySelectorAll('[data-level]');buttons.forEach(function(b){var index=+b.dataset.level;b.disabled=index>=unlocked;b.classList.toggle('active',!!challenge&&challenge.index===index)});
- var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'✓ Level completed! Choose the next or return to your saved sandbox.':Levels.levels[challenge.index].brief+' Keep the blue ball fully inside the green goal until it settles.'):'Free Sandbox · No win condition. Physics Challenges are optional.';
+ var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'✓ Level completed! Choose the next or return to your saved sandbox.':Levels.levels[challenge.index].brief+' Keep the blue ball fully inside the green goal until it settles.'):((GAME_MODES.filter(function(m){return m.id===gameMode})[0]||GAME_MODES[0]).name+' · No required win condition. Physics Challenges are optional.');
  var next=$('nextLevel');if(next)next.disabled=!challenge||!challenge.won||challenge.index>=Levels.levels.length-1;
  var objective=$('missionObjective');
  if(objective){objective.classList.toggle('hidden',!challenge);objective.textContent=challenge?(challenge.won?'✓ Level '+(challenge.index+1)+' complete! Choose the next level or return to Free Sandbox.':'🎯 Level '+(challenge.index+1)+'/'+Levels.levels.length+': '+Levels.levels[challenge.index].brief+' Keep the blue ball inside the green goal to finish.') :''}
- var action=$('challengeAction');if(action){action.textContent=challenge&&challenge.won?'🎯 Next':'🎯 Levels';action.setAttribute('aria-label',challenge?'Choose or change optional physics challenge':'Choose an optional physics challenge')}
- updatePause();updateToolHint();
+ var action=$('challengeAction');if(action){action.textContent='🎮 Games';action.setAttribute('aria-label','Choose a game type')}
+ updateGameModes();updateToolHint();
 }
-function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
-function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
+function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;gameMode='puzzles';if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
+function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;gameMode='sandbox';updateGameModes();updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
 function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
 function rotatedOffset(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0);return{x:x*c-y*s,y:x*s+y*c}}
 function toLocal(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0),dx=x-p.x,dy=y-p.y;return{x:dx*c+dy*s,y:-dx*s+dy*c}}
@@ -656,13 +748,14 @@ function assignWorld(input,clearUndo){
 }
 function slotKey(){return 'sticklab_scene_v4_'+$('saveSlot').value}
 function saveLocal(){try{localStorage.setItem(slotKey(),JSON.stringify({format:'StickLab',version:4,world:world}));toast('Scene saved to slot '+$('saveSlot').value)}catch(e){toast('Storage unavailable — use Export instead')}}
-function loadLocal(){try{var txt=localStorage.getItem(slotKey());var legacy=false;if(!txt){txt=localStorage.getItem('sticklab_scene_v3_'+$('saveSlot').value);legacy=!!txt}if(!txt){txt=localStorage.getItem('sticklab_scene_v2_'+$('saveSlot').value);legacy=!!txt}if(!txt&&$('saveSlot').value==='1'){txt=localStorage.getItem('sticklab_scene_v1');legacy=!!txt}if(!txt){toast('No scene in this slot');return}assignWorld(JSON.parse(txt),true);sandboxResume=null;toast(legacy?'Older saved scene loaded safely':'Saved scene loaded')}catch(e){toast('Could not load saved scene')}}
+function loadLocal(){try{var txt=localStorage.getItem(slotKey());var legacy=false;if(!txt){txt=localStorage.getItem('sticklab_scene_v3_'+$('saveSlot').value);legacy=!!txt}if(!txt){txt=localStorage.getItem('sticklab_scene_v2_'+$('saveSlot').value);legacy=!!txt}if(!txt&&$('saveSlot').value==='1'){txt=localStorage.getItem('sticklab_scene_v1');legacy=!!txt}if(!txt){toast('No scene in this slot');return}assignWorld(JSON.parse(txt),true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes();toast(legacy?'Older saved scene loaded safely':'Saved scene loaded')}catch(e){toast('Could not load saved scene')}}
 function download(name,mime,data){var a=document.createElement('a');if(typeof Blob!=='undefined'&&URL.createObjectURL){var blob=new Blob([data],{type:mime}),url=URL.createObjectURL(blob);a.href=url;a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(url)},1000)}else{a.href='data:'+mime+','+encodeURIComponent(data);a.download=name;a.click()}}
 function exportWorld(){download('StickLab-world.json','application/json',JSON.stringify({format:'StickLab',version:4,world:world},null,2));toast('Scene JSON exported')}
 function screenshot(){try{var a=document.createElement('a');a.download='StickLab-scene.png';a.href=canvas.toDataURL('image/png');a.click();toast('Scene image saved')}catch(e){toast('Could not save image on this device')}}
 function importFile(file){if(!file)return;if(file.size>1500000){toast('Scene file is too large');return}var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);assignWorld(d,true);toast('Scene imported successfully')}catch(e){toast('Invalid StickLab scene file')}};reader.onerror=function(){toast('File could not be read')};reader.readAsText(file)}
 function modal(open){$('modalWrap').classList.toggle('open',open)}
-function controls(){$('challengeAction').onclick=function(){var section=$('challengeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'center'});toast('Physics Challenges are optional · choose any unlocked level')};$('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){if(!exitChallenge())toast('You are already in Free Sandbox')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){newWorld(b.dataset.scene);$('sidebar').classList.remove('open')})});
+function controls(){$('challengeAction').onclick=function(){var section=$('gameModeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'start'});toast('Choose a game type · your sandbox can be restored')};
+ document.querySelectorAll('[data-game]').forEach(function(b){b.addEventListener('click',function(){selectGameMode(b.dataset.game)})});$('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){selectGameMode('sandbox');$('sidebar').classList.remove('open')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){gameReturn=null;newWorld(b.dataset.scene);gameMode='sandbox';updateGameModes();updateChallenges();$('sidebar').classList.remove('open')})});
  $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25);toast('Zoom '+Math.round(cam.z*100)+'%')};$('zoomOut').onclick=function(){zoom(.8);toast('Zoom '+Math.round(cam.z*100)+'%')};$('recenter').onclick=function(){defaultCamera();toast('View centered · '+Math.round(cam.z*100)+'%')};
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
@@ -691,7 +784,7 @@ function controls(){$('challengeAction').onclick=function(){var section=$('chall
  window.addEventListener('resize',syncLayout);if(window.visualViewport&&window.visualViewport.addEventListener)window.visualViewport.addEventListener('resize',syncLayout);window.addEventListener('orientationchange',syncLayout)
 }
 // Initialize with no prompts or login; animation starts immediately.
-controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null},step:simulate};
+controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updateGameModes();syncLayout();requestAnimationFrame(loop);
+window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
 })();
 </script></body></html>
