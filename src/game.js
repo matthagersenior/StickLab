@@ -139,7 +139,37 @@ function playerInput(){var p=findPart(state.selected),g=p&&p.group?findGroup(p.g
  if(state.keys.left||state.keys.right){var force=state.keys.left?-.65:.65;g.nodes.forEach(function(id){var joint=findPart(id);if(joint){joint.px-=force*(id===g.hip?1.7:.65)}})}
  if(state.keys.jump){var now=Date.now();if(now-state.lastJump>600){var feet=[findPart(g.nodes[g.nodes.length-2]),findPart(g.nodes[g.nodes.length-1])];var grounded=feet.some(function(f){return f&&f.y+f.r>=FLOOR-15});if(grounded){g.nodes.forEach(function(id){var joint=findPart(id);if(joint)joint.py+=7});state.lastJump=now}}state.keys.jump=false}
 }
-function simulate(){playerInput();
+function residentInput(){
+ if(!world.aiEnabled)return;
+ var cap=limits[profile].agents,rate=limits[profile].think,used=0,chosen=selectedResident();
+ for(var n=0;n<world.groups.length&&used<cap;n++){
+  var g=world.groups[n];if(!g.ai)continue;used++;
+  if(chosen&&chosen.id===g.id)continue;
+  var hip=findPart(g.hip);if(!hip||hip.fixed)continue;
+  if(!g.brain||state.tick%rate===n%rate){
+   var nearby=[],goal=null;
+   for(var p=0;p<world.parts.length&&nearby.length<32;p++){
+    var item=world.parts[p];if(item.group||item.kind==='joint'||Math.abs(item.x-hip.x)>270||Math.abs(item.y-hip.y)>210)continue;
+    nearby.push(item);
+   }
+   if(g.mode==='help'){
+    if(challenge&&!challenge.won)goal=findPart(challenge.targetId);
+    else{for(var b=0;b<nearby.length;b++)if(nearby[b].kind==='ball'&&!nearby[b].fixed&&nearby[b].r>12){goal=nearby[b];break}}
+   }
+   g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR);
+   g.intent=g.brain.intent;
+   g.memory=g.brain.memory;
+   if(g.brain.activateMotorId){var motor=findPart(g.brain.activateMotorId);if(motor&&motor.kind==='wheel'&&!motor.motor){motor.motor=true;motor.motorDirection=g.brain.direction||1}}
+  }
+  var command=g.brain,dir=command.direction||0;
+  if(dir){var force=g.personality==='cautious'?.12:.17;for(var k=0;k<g.nodes.length;k++){var joint=findPart(g.nodes[k]);if(joint&&!joint.fixed)joint.px-=dir*force*(joint.id===g.hip?1.5:.65)}}
+  if(command.jump&&(state.tick-(g.lastJumpTick||-100))>48){
+   var feet=g.nodes.slice(-2).map(findPart),grounded=feet.some(function(foot){return foot&&foot.y+foot.r>=FLOOR-22&&foot.y+foot.r<=FLOOR+12});
+   if(grounded){g.nodes.forEach(function(id){var joint=findPart(id);if(joint)joint.py+=4.5});g.lastJumpTick=state.tick}
+  }
+ }
+}
+function simulate(){state.tick++;residentInput();playerInput();
  var i,j,p,iter=limits[profile].iterations;
  for(i=0;i<world.parts.length;i++){p=world.parts[i];if(p.fixed)continue;if(p.kind==='wheel')Machines.motorStep(p,FLOOR,1);var vx=Math.max(-32,Math.min(32,(p.x-p.px)*.997));var vy=Math.max(-32,Math.min(32,(p.y-p.py)*.997));p.px=p.x;p.py=p.y;p.x+=vx;p.y+=vy+options.gravity*STEP*STEP;if(p.kind==='box'){var av=Math.max(-.12,Math.min(.12,(p.angle-p.pa)*.995));p.pa=p.angle;p.angle+=av;}if(!Number.isFinite(p.x)||!Number.isFinite(p.y)){p.x=900;p.y=400;p.px=p.x;p.py=p.y}}
  for(j=0;j<iter;j++){
