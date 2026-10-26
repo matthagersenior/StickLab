@@ -299,3 +299,57 @@ test('challenge directive updates on win and optional controls retain current mo
  assert.equal(api.getWorld().parts.length,w.parts.length);
  assert.match(nodes.subTitle.textContent,/level|goal|ball|challenge/i);
 });
+
+test('five distinct game types are selectable with meaningful starter scenes',()=>{
+ const {api}=engine(true);
+ assert.deepEqual(Array.from(api.getGameModes().map(m=>m.id)),['sandbox','puzzles','builder','destruction','living']);
+ const start=api.getWorld();
+ assert.equal(api.chooseGameMode('builder'),true);
+ assert.equal(api.getState().gameMode,'builder');
+ const built=api.getWorld();
+ assert.ok(built.parts.some(p=>p.kind==='wheel'),'machine workshop must contain vehicle wheels');
+ assert.ok(built.links.some(l=>l.type==='hinge'),'workshop must provide working joints');
+ assert.equal(api.chooseGameMode('destruction'),true);
+ assert.equal(api.getState().gameMode,'destruction');
+ assert.ok(api.getWorld().parts.some(p=>p.kind==='box'&&!p.fixed),'destruction should include targets');
+ assert.notEqual(api.getWorld().title,built.title);
+ assert.equal(api.chooseGameMode('living'),true);
+ assert.equal(api.getState().gameMode,'living');
+ assert.ok(api.getResidents().length>=2,'living mode should include multiple residents');
+ assert.equal(api.chooseGameMode('nonsense'),false);
+ assert.equal(api.chooseGameMode('sandbox'),true);
+ assert.equal(api.getWorld().title,start.title);
+ assert.equal(api.getState().gameMode,'sandbox');
+});
+test('choosing different gameplay preserves an existing sandbox until returning',()=>{
+ const {api}=engine(true);api.createWorld('empty');api.spawnResident(810,820);
+ const before=api.getWorld();
+ api.chooseGameMode('builder');
+ api.chooseGameMode('destruction');
+ api.chooseGameMode('living');
+ api.chooseGameMode('sandbox');
+ assert.equal(api.getWorld().groups.length,before.groups.length);
+ assert.equal(api.getWorld().parts.length,before.parts.length);
+ assert.equal(api.getWorld().title,before.title);
+});
+test('puzzle game type opens level choice without silently starting a level',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const before=JSON.stringify(api.getWorld());
+ nodes.gameModes.onclick();
+ assert.equal(JSON.stringify(api.getWorld()),before);
+ assert.equal(api.getState().gameMode,'sandbox');
+ nodes.modeCardsPuzzles.onclick();
+ assert.equal(api.getState().gameMode,'sandbox');
+ assert.equal(JSON.stringify(api.getWorld()),before);
+ assert.equal(api.startLevel(0),true);
+ assert.equal(api.getState().gameMode,'puzzles');
+ assert.equal(api.chooseGameMode('sandbox'),true);
+ assert.equal(api.getState().gameMode,'sandbox');
+});
+test('scene presets and imported saves do not leave stale game-mode labels',()=>{
+ const {api}=engine(true);api.chooseGameMode('builder');api.createWorld('tower');
+ assert.equal(api.getState().gameMode,'sandbox');
+ api.chooseGameMode('living');
+ const scene=api.getWorld();api.importScene({format:'StickLab',version:4,world:scene});
+ assert.equal(api.getState().gameMode,'sandbox');
+});
