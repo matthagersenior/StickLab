@@ -125,3 +125,37 @@
  .top-actions .challenge-action{font-size:11px;white-space:nowrap;min-width:0}
  .game-card{min-height:64px}
 }
+
+/* Dedicated Physics Puzzle chooser: independent of sidebar scroll position. */
+.puzzle-picker{position:fixed;inset:0;z-index:40;display:flex;justify-content:center;align-items:center;background:#0b182acb;padding:calc(12px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) calc(12px + env(safe-area-inset-left,0px))}
+.puzzle-picker-panel{width:min(520px,100%);max-height:100%;overflow-y:auto;overscroll-behavior:contain;border-radius:18px;padding:clamp(16px,4vw,26px);background:#f8faf8;box-shadow:0 22px 80px #04132475;color:#18283a}
+.puzzle-picker-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.puzzle-picker-top h2{margin:0;font-size:clamp(19px,4vw,26px);line-height:1.15}
+.puzzle-picker-top p{font-size:13px;color:#526777;line-height:1.45;margin:7px 0 14px}
+.puzzle-picker-top .puzzle-eyebrow{font-size:10px;color:#197d67;font-weight:850;letter-spacing:1.3px;margin:0 0 6px}
+.puzzle-picker-close{flex:0 0 44px;width:44px;height:44px;border-radius:11px;background:#e9efed;border:1px solid #d5e1da;color:#233b47;font-size:26px}
+.puzzle-picker-levels{display:grid;gap:9px}
+.puzzle-picker-level{width:100%;min-height:75px;display:flex;gap:12px;align-items:center;text-align:left;padding:12px;border:2px solid #b0d9c9;border-radius:12px;background:#effbf3;color:#172e36;cursor:pointer;touch-action:manipulation}
+.puzzle-picker-level:focus-visible{outline:3px solid #ffac5a;outline-offset:2px}
+.puzzle-picker-level .level-marker{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border-radius:11px;background:#c8efe1;color:#19624c;font-size:17px;font-weight:850}
+.puzzle-picker-level>span:nth-child(2){flex:1;min-width:0}
+.puzzle-picker-level strong{display:block;font-size:15px}
+.puzzle-picker-level small{display:block;font-size:12px;line-height:1.4;color:#586e74;margin-top:3px}
+.puzzle-picker-level .level-state{font-size:11px;letter-spacing:.3px;color:#157654;white-space:nowrap}
+.puzzle-picker-level[disabled]{cursor:not-allowed;border-color:#e1e7e6;background:#f1f3f3;opacity:.76}
+.puzzle-picker-level[disabled] .level-marker{background:#dfe5e4;color:#617479}
+.puzzle-picker-level[disabled] .level-state{color:#758486}
+#puzzlePickerStatus{font-size:12px;color:#49635a;margin:12px 0;line-height:1.5}
+.puzzle-picker-back{width:100%;min-height:44px;border-radius:10px;border:1px solid #d2ded9;background:white;color:#38525b;font-size:13px;font-weight:750}
+@media (max-height:480px) and (orientation:landscape){
+ .puzzle-picker{align-items:stretch;padding:6px calc(8px + env(safe-area-inset-right,0px)) 6px calc(8px + env(safe-area-inset-left,0px))}
+ .puzzle-picker-panel{width:min(680px,100%);padding:10px 16px}
+ .puzzle-picker-top p{margin:3px 0 7px}
+ .puzzle-picker-levels{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .puzzle-picker-level{min-height:66px;padding:7px;gap:5px;flex-wrap:wrap}
+ .puzzle-picker-level .level-marker{width:28px;height:28px;flex:0 0 28px;font-size:11px}
+ .puzzle-picker-level strong{font-size:12px}
+ .puzzle-picker-level small{font-size:10px}
+ .puzzle-picker-level .level-state{font-size:10px}
+ #puzzlePickerStatus{margin:7px 0}
+}
