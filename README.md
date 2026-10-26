@@ -1,4 +1,8 @@
-# StickLab v0.4.4 — Living Physics Sandbox
+# StickLab v0.5.0 — Five Ways to Play
+
+**Choose Your Game:** Tap **🎮 Games** in the top bar. Choose **Free Sandbox**, **Physics Puzzles**, **Engineering Lab**, **Ragdoll Chaos**, or **Living World**. Physics Puzzles has three optional levels; the others are distinct open-ended worlds using the same physics controls. Your Free Sandbox scene is kept temporarily when switching modes and is restored on return. [Details and limits](docs/releases/v0.5.0-game-modes.md).
+
+
 
 **Optional Levels:** The **🎯 Levels** button in the top action bar opens the Physics Challenges menu without interrupting Free Sandbox. Choose a level when you want an objective: move the blue target ball into the green goal and let it settle. Return to Free Sandbox at any time to restore your original scene and camera. [Full release notes](docs/releases/v0.4.4-optional-challenges.md).
 
