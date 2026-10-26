@@ -14,7 +14,15 @@ var W=2200,H=1150,FLOOR=930,STEP=1/60;
 var world={parts:[],links:[],groups:[],next:1,title:'The Playground',aiEnabled:true};var partIndex={};
 var options={gravity:780,speed:1,bounce:.35,quality:'auto',material:'wood'};
 var limits={eco:{objects:85,iterations:3,dpr:1,agents:2,think:30},standard:{objects:180,iterations:5,dpr:1.5,agents:5,think:18},high:{objects:320,iterations:7,dpr:2,agents:8,think:12}};
-var profile='standard',lowFpsSec=0,challenge=null,sandboxResume=null,unlocked=1;
+var profile='standard',lowFpsSec=0,challenge=null,sandboxResume=null,unlocked=1,currentMode='sandbox';
+var gameModeOptions=[
+ {id:'sandbox',title:'Free Sandbox',kind:'Creative',description:'Build anything with no required goals.'},
+ {id:'puzzles',title:'Physics Puzzles',kind:'Goal-based',description:'Solve optional physics levels to unlock more.'},
+ {id:'builder',title:'Machine Builder',kind:'Creative',description:'Build and test vehicles, wheels, hinges and mechanisms.'},
+ {id:'destruction',title:'Destruction Arena',kind:'Creative',description:'Knock down towers with falling weights and physics.'},
+ {id:'living',title:'Living World',kind:'Simulation',description:'Observe and control independent stick figures.'}
+];
+var modeDirections={builder:'⚙ MACHINE BUILDER · Build and test your own vehicle. Use motors, hinges and wheels. Free play.',destruction:'💥 DESTRUCTION ARENA · Knock the crates down with impact, balls and machines. Free play.',living:'☺ LIVING WORLD · Observe the inhabitants, choose Help/Explore/Rest, or take control. Free play.'};
 try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getItem('sticklab_challenge_unlocks_v03'),10)||1))}catch(e){}
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
 var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
@@ -76,7 +84,7 @@ function ensureControlledFigure(){
 }
 function isCompactLayout(){return window.matchMedia?window.matchMedia('(max-width: 690px), (max-width: 1180px) and (pointer: coarse)').matches:window.innerWidth<=690}
 function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();if(isCompactLayout())$('sidebar').classList.remove('open')}
-function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=challenge?('🎯 Level '+(challenge.index+1)+' · Ball → goal'+(state.paused?' · Paused':'')):(state.paused?'Free Sandbox · Paused':'Free Sandbox · Optional levels')}
+function updatePause(){$('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';$('subTitle').textContent=challenge?('🎯 Level '+(challenge.index+1)+' · Ball → goal'+(state.paused?' · Paused':'')):currentMode==='sandbox'?(state.paused?'Free Sandbox · Paused':'Free Sandbox · Choose 🎮 Games'):gameModeOptions.filter(function(m){return m.id===currentMode})[0].title+(state.paused?' · Paused':' · Free play')}
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
 function syncLayout(){resize();var compact=isCompactLayout();$('openMenu').classList.toggle('hidden',!compact);if(!compact)$('sidebar').classList.remove('open')}
 function resize(){var r=stage.getBoundingClientRect();width=Math.max(100,r.width);height=Math.max(100,r.height);dpr=Math.min(window.devicePixelRatio||1,limits[profile].dpr);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);canvas.style.width=width+'px';canvas.style.height=height+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
@@ -84,7 +92,7 @@ function defaultCamera(){cam.x=900;cam.y=660;cam.z=Math.max(.38,Math.min(1.25,wi
 function updateCameraFeedback(){var label=$('cameraFeedback');if(label)label.textContent=Math.round(cam.z*100)+'%'}
 function worldPoint(cx,cy){var r=canvas.getBoundingClientRect();return {x:cam.x+((cx-r.left)-width/2)/cam.z,y:cam.y+((cy-r.top)-height/2)/cam.z}}
 function zoom(factor,atX,atY){var before=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.z=Math.max(.24,Math.min(2.5,cam.z*factor));var after=worldPoint(atX==null?width/2+canvas.getBoundingClientRect().left:atX,atY==null?height/2+canvas.getBoundingClientRect().top:atY);cam.x+=before.x-after.x;cam.y+=before.y-after.y;updateCameraFeedback()}
-function newWorld(which){var keepAI=world.aiEnabled!==false;if(which!=='empty')sandboxResume=null;challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:keepAI,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
+function newWorld(which){var keepAI=world.aiEnabled!==false;if(which!=='empty'){sandboxResume=null;currentMode='sandbox'}challenge=null;world={parts:[],links:[],groups:[],next:1,aiEnabled:keepAI,title:which==='tower'?'Tower Test':which==='chaos'?'Chaos Chamber':which==='empty'?'Blank Canvas':'The Playground'};state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;partIndex={};forgetHistory();
  if(which==='playground'){
  block(770,FLOOR-32,102,64,true,'#aebbb7');block(880,FLOOR-29,60,58,false,COLORS.orange);block(880,FLOOR-91,60,58,false,COLORS.orange);block(954,FLOOR-25,50,50,false,COLORS.orange);var hanging=figure(730,FLOOR-176);var hanger=anchor(730,370);if(hanging){var hangingGroup=findGroup(hanging.group);link(hanger,findPart(hangingGroup.head),'rope',270,.96)}resident(1100,FLOOR-76);
  ball(990,450,32,COLORS.aqua);ball(1090,FLOOR-28,28,COLORS.pink);var a=anchor(1210,248),b=ball(1250,440,29,COLORS.violet);link(a,b,'rope',205,.95);
@@ -100,19 +108,66 @@ function newWorld(which){var keepAI=world.aiEnabled!==false;if(which!=='empty')s
  $('worldTitle').textContent=world.title;defaultCamera();updateCounts();updateChallenges();updateResidents();toast(world.title+' loaded')}
 function updateToolHint(){var hint=$('hint');if(!hint)return;
  if(challenge){var level=Levels.levels[challenge.index];hint.innerHTML='<b>🎯 LEVEL '+(challenge.index+1)+'/'+Levels.levels.length+': '+(challenge.won?'COMPLETE!': 'Move blue ball to green goal.')+'</b> '+(challenge.won?'Open Levels for the next challenge or return to Free Sandbox.':'Keep the ball completely inside the goal until it settles.')+' <span class="hint-tool">'+(toolHints[state.tool]||'')+'</span>'}
- else hint.innerHTML=toolHints[state.tool]||'';
+ else hint.innerHTML=(modeDirections[currentMode]?'<b>'+modeDirections[currentMode]+'</b> <span class="hint-tool">'+(toolHints[state.tool]||'')+'</span>':toolHints[state.tool]||'');
+}
+function openGameModePicker(){
+ var modal=$('gameModePicker');modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');
+ $('modeLevelList').classList.add('hidden');
+ $('modePickerNote').textContent='Pick a game type. Selecting Physics Puzzles lets you choose a level first.';
+ document.querySelectorAll('[data-play-mode]').forEach(function(b){b.classList.toggle('active',b.dataset.playMode===currentMode)});
+ $('sidebar').classList.remove('open');
+}
+function closeGameModePicker(){var modal=$('gameModePicker');modal.classList.add('hidden');modal.setAttribute('aria-hidden','true')}
+function showModeLevels(){
+ $('modeLevelList').classList.remove('hidden');
+ $('modePickerNote').textContent='Choose any unlocked level. Your current world stays safe until you start it.';
+ document.querySelectorAll('[data-mode-level]').forEach(function(b){b.disabled=(+b.dataset.modeLevel)>=unlocked});
+}
+function saveSandboxForMode(){if(!sandboxResume&&currentMode==='sandbox')sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}}}
+function returnToSandbox(){
+ var restore=sandboxResume;sandboxResume=null;currentMode='sandbox';challenge=null;
+ if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}
+ else if(world.title==='Blank Canvas'||world.title==='Machine Builder'||world.title==='Destruction Arena'||world.title==='Living World')newWorld('playground');
+ updateChallenges();updateResidents();closeGameModePicker();toast('Free Sandbox · your work is available');return true;
+}
+function chooseGameMode(id){
+ if(gameModeOptions.every(function(m){return m.id!==id}))return false;
+ if(id==='puzzles'){openGameModePicker();showModeLevels();return true}
+ if(id==='sandbox'){if(currentMode==='sandbox'&&!challenge){closeGameModePicker();return true}return returnToSandbox()}
+ saveSandboxForMode();
+ newWorld('empty');currentMode=id;
+ if(id==='builder'){
+  world.title='Machine Builder';
+  var a=anchor(610,480),bridge=block(780,610,210,20,true,'#849ba8');cart(760,FLOOR-55);ball(1110,FLOOR-32,30,COLORS.aqua);
+  if(a&&bridge)link(a,bridge,'rope',155,.95);
+  state.paused=true;
+ }else if(id==='destruction'){
+  world.title='Destruction Arena';
+  for(var i=0;i<3;i++)for(var j=0;j<3;j++)block(880+i*58,FLOOR-27-j*56,55,53,false,COLORS.orange);
+  ball(770,270,50,COLORS.pink);ball(1090,290,56,COLORS.violet);
+  anchor(580,290);state.paused=false;
+ }else if(id==='living'){
+  world.title='Living World';world.aiEnabled=true;
+  resident(630,FLOOR-76);resident(1050,FLOOR-76);resident(1370,FLOOR-76);
+  block(820,FLOOR-35,130,70,true,'#aebbb7');block(1160,FLOOR-65,140,16,true,'#aebbb7');
+  ball(925,FLOOR-27,25,COLORS.aqua);wheel(1210,FLOOR-27,false);
+  state.paused=false;
+ }
+ $('worldTitle').textContent=world.title;updatePause();updateChallenges();updateResidents();closeGameModePicker();
+ toast(gameModeOptions.filter(function(m){return m.id===id})[0].title+' · '+(state.paused?'Press Play to test':'Experiment freely'));
+ return true;
 }
 function updateChallenges(){
  var buttons=document.querySelectorAll('[data-level]');buttons.forEach(function(b){var index=+b.dataset.level;b.disabled=index>=unlocked;b.classList.toggle('active',!!challenge&&challenge.index===index)});
  var label=$('challengeStatus');if(label)label.textContent=challenge?(challenge.won?'✓ Level completed! Choose the next or return to your saved sandbox.':Levels.levels[challenge.index].brief+' Keep the blue ball fully inside the green goal until it settles.'):'Free Sandbox · No win condition. Physics Challenges are optional.';
  var next=$('nextLevel');if(next)next.disabled=!challenge||!challenge.won||challenge.index>=Levels.levels.length-1;
  var objective=$('missionObjective');
- if(objective){objective.classList.toggle('hidden',!challenge);objective.textContent=challenge?(challenge.won?'✓ Level '+(challenge.index+1)+' complete! Choose the next level or return to Free Sandbox.':'🎯 Level '+(challenge.index+1)+'/'+Levels.levels.length+': '+Levels.levels[challenge.index].brief+' Keep the blue ball inside the green goal to finish.') :''}
- var action=$('challengeAction');if(action){action.textContent=challenge&&challenge.won?'🎯 Next':'🎯 Levels';action.setAttribute('aria-label',challenge?'Choose or change optional physics challenge':'Choose an optional physics challenge')}
+ if(objective){var directive=challenge?(challenge.won?'✓ Level '+(challenge.index+1)+' complete! Choose the next level or return to Free Sandbox.':'🎯 Level '+(challenge.index+1)+'/'+Levels.levels.length+': '+Levels.levels[challenge.index].brief+' Keep the blue ball inside the green goal to finish.'):modeDirections[currentMode]||'';objective.classList.toggle('hidden',!directive);objective.textContent=directive}
+ var action=$('challengeAction');if(action){action.textContent='🎮 Games';action.setAttribute('aria-label','Choose a game type')}
  updatePause();updateToolHint();
 }
-function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
-function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
+function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;if(currentMode==='sandbox'&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');currentMode='puzzles';world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
+function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;currentMode='sandbox';if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
 function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
 function rotatedOffset(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0);return{x:x*c-y*s,y:x*s+y*c}}
 function toLocal(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0),dx=x-p.x,dy=y-p.y;return{x:dx*c+dy*s,y:-dx*s+dy*c}}
@@ -343,7 +398,7 @@ function assignWorld(input,clearUndo){
  // Validation and migration MUST finish before replacing the active simulation.
  var migrated=Core.normalizeScene(input),candidate=migrated.world;
  candidate.parts.forEach(setMass);
- world=candidate;challenge=null;updateChallenges();state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;
+ world=candidate;challenge=null;currentMode='sandbox';updateChallenges();state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;
  rebuildIndex();if(clearUndo)forgetHistory();$('worldTitle').textContent=world.title;updateCounts();updateResidents();
 }
 function slotKey(){return 'sticklab_scene_v4_'+$('saveSlot').value}
@@ -354,7 +409,12 @@ function exportWorld(){download('StickLab-world.json','application/json',JSON.st
 function screenshot(){try{var a=document.createElement('a');a.download='StickLab-scene.png';a.href=canvas.toDataURL('image/png');a.click();toast('Scene image saved')}catch(e){toast('Could not save image on this device')}}
 function importFile(file){if(!file)return;if(file.size>1500000){toast('Scene file is too large');return}var reader=new FileReader();reader.onload=function(){try{var d=JSON.parse(reader.result);assignWorld(d,true);toast('Scene imported successfully')}catch(e){toast('Invalid StickLab scene file')}};reader.onerror=function(){toast('File could not be read')};reader.readAsText(file)}
 function modal(open){$('modalWrap').classList.toggle('open',open)}
-function controls(){$('challengeAction').onclick=function(){var section=$('challengeSection');if(isCompactLayout())$('sidebar').classList.add('open');if(section&&section.scrollIntoView)section.scrollIntoView({block:'center'});toast('Physics Challenges are optional · choose any unlocked level')};$('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){if(!exitChallenge())toast('You are already in Free Sandbox')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){newWorld(b.dataset.scene);$('sidebar').classList.remove('open')})});
+function controls(){$('challengeAction').onclick=openGameModePicker;$('gameModes').onclick=openGameModePicker;$('closeGameModes').onclick=closeGameModePicker;
+ $('gameModePicker').addEventListener('click',function(e){if(e.target===this)closeGameModePicker()});
+ document.querySelectorAll('[data-play-mode]').forEach(function(b){b.onclick=function(){if(this.dataset.playMode==='puzzles'){showModeLevels();return}chooseGameMode(this.dataset.playMode)}});
+ document.querySelectorAll('[data-mode-level]').forEach(function(b){b.onclick=function(){if(loadLevel(+this.dataset.modeLevel)){closeGameModePicker();$('sidebar').classList.remove('open')}}});
+ window.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('gameModePicker').classList.contains('hidden'))closeGameModePicker()});
+ $('snapshotMenu').onclick=screenshot;document.querySelectorAll('[data-level]').forEach(function(b){b.addEventListener('click',function(){loadLevel(+b.dataset.level);$('sidebar').classList.remove('open')})});$('freeSandbox').onclick=function(){if(!chooseGameMode('sandbox'))toast('Already in Free Sandbox')};$('hintLevel').onclick=function(){if(challenge)toast(Levels.levels[challenge.index].hint);else toast('Choose a challenge to see its hint')};$('restartLevel').onclick=function(){if(challenge)loadLevel(challenge.index);else toast('Select a challenge first')};$('nextLevel').onclick=function(){if(challenge&&challenge.won)loadLevel(challenge.index+1)};document.querySelectorAll('[data-tool]').forEach(function(b){b.addEventListener('click',function(){setTool(b.dataset.tool)})});document.querySelectorAll('[data-scene]').forEach(function(b){b.addEventListener('click',function(){newWorld(b.dataset.scene);$('sidebar').classList.remove('open')})});
  $('pause').onclick=function(){state.paused=!state.paused;updatePause()};$('step').onclick=function(){state.paused=true;simulate();updatePause()};$('zoomIn').onclick=function(){zoom(1.25);toast('Zoom '+Math.round(cam.z*100)+'%')};$('zoomOut').onclick=function(){zoom(.8);toast('Zoom '+Math.round(cam.z*100)+'%')};$('recenter').onclick=function(){defaultCamera();toast('View centered · '+Math.round(cam.z*100)+'%')};
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
@@ -384,5 +444,5 @@ function controls(){$('challengeAction').onclick=function(){var section=$('chall
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updatePause();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,getState:function(){return{entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null},step:simulate};
+window.StickLab={getGameModes:function(){return gameModeOptions.map(function(m){return{id:m.id,title:m.title,kind:m.kind,description:m.description}})},chooseGameMode:chooseGameMode,exitChallenge:exitChallenge,getState:function(){return{gameMode:currentMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null},step:simulate};
 })();
