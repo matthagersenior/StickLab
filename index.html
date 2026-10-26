@@ -247,11 +247,50 @@ function pointerStart(id,cx,cy){var pos=worldPoint(cx,cy),p=hitTest(pos.x,pos.y)
 }
 function pointerMove(id,cx,cy){var pos=worldPoint(cx,cy);state.pointerCoords=pos;if(state.drag&&state.drag.id===id){state.drag.target=pos;if(state.paused&&!state.drag.part.fixed){var p=state.drag.part,dx=pos.x-p.x,dy=pos.y-p.y;p.x+=dx;p.px+=dx;p.y+=dy;p.py+=dy}}else if(state.pan&&state.pan.id===id){cam.x=state.pan.x-(cx-state.pan.cx)/cam.z;cam.y=state.pan.y-(cy-state.pan.cy)/cam.z}}
 function pointerEnd(id){if(state.drag&&state.drag.id===id)state.drag=null;if(state.pan&&state.pan.id===id)state.pan=null}
-// Use pointer events on modern browsers, touch/mouse fallback on older browsers.
-if(window.PointerEvent){canvas.addEventListener('pointerdown',function(e){e.preventDefault();try{canvas.setPointerCapture(e.pointerId)}catch(_){}pointerStart(e.pointerId,e.clientX,e.clientY)});canvas.addEventListener('pointermove',function(e){pointerMove(e.pointerId,e.clientX,e.clientY)});canvas.addEventListener('pointerup',function(e){pointerEnd(e.pointerId)});canvas.addEventListener('pointercancel',function(e){pointerEnd(e.pointerId)})}
-else{var mouseDown=false;canvas.addEventListener('mousedown',function(e){mouseDown=true;pointerStart('mouse',e.clientX,e.clientY)});window.addEventListener('mousemove',function(e){if(mouseDown)pointerMove('mouse',e.clientX,e.clientY)});window.addEventListener('mouseup',function(){mouseDown=false;pointerEnd('mouse')});canvas.addEventListener('touchstart',function(e){e.preventDefault();var t=e.changedTouches[0];pointerStart(t.identifier,t.clientX,t.clientY)},{passive:false});canvas.addEventListener('touchmove',function(e){e.preventDefault();var t=e.changedTouches[0];pointerMove(t.identifier,t.clientX,t.clientY)},{passive:false});canvas.addEventListener('touchend',function(e){pointerEnd(e.changedTouches[0].identifier)})}
+// Pointer events: touch tools commit only on release, preventing accidental builds during pinch.
+var touches={},pinch=null,touchGesture=false;
+if(window.PointerEvent){
+ canvas.addEventListener('pointerdown',function(e){
+  e.preventDefault();try{canvas.setPointerCapture(e.pointerId)}catch(_){}
+  if(e.pointerType==='touch'){
+   touches[e.pointerId]={x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY,moved:false};
+   if(Object.keys(touches).length>=2){touchGesture=true;pinch=null;state.drag=null;state.pan=null;return}
+   if(state.tool!=='grab')return;
+  }
+  pointerStart(e.pointerId,e.clientX,e.clientY);
+ });
+ canvas.addEventListener('pointermove',function(e){
+  var t=touches[e.pointerId];if(!t){if(e.pointerType!=='touch')pointerMove(e.pointerId,e.clientX,e.clientY);return}
+  if(Math.hypot(e.clientX-t.sx,e.clientY-t.sy)>9)t.moved=true;
+  t.x=e.clientX;t.y=e.clientY;
+  var ids=Object.keys(touches);
+  if(ids.length>=2){
+   touchGesture=true;state.drag=null;state.pan=null;
+   var a=touches[ids[0]],b=touches[ids[1]],mx=(a.x+b.x)/2,my=(a.y+b.y)/2,dist=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
+   if(pinch){cam.x-=(mx-pinch.x)/cam.z;cam.y-=(my-pinch.y)/cam.z;zoom(Math.max(.8,Math.min(1.25,dist/pinch.dist)),mx,my)}
+   pinch={x:mx,y:my,dist:dist};return;
+  }
+  if(!touchGesture&&state.tool==='grab')pointerMove(e.pointerId,e.clientX,e.clientY);
+ });
+ function pointerFinish(e,cancel){
+  var t=touches[e.pointerId];if(t){
+   if(!cancel&&!touchGesture&&!t.moved&&state.tool!=='grab')pointerStart(e.pointerId,e.clientX,e.clientY);
+   delete touches[e.pointerId];if(!Object.keys(touches).length){touchGesture=false;pinch=null}
+  }
+  pointerEnd(e.pointerId);
+ }
+ canvas.addEventListener('pointerup',function(e){pointerFinish(e,false)});
+ canvas.addEventListener('pointercancel',function(e){pointerFinish(e,true)});
+}else{
+ var mouseDown=false;
+ canvas.addEventListener('mousedown',function(e){mouseDown=true;pointerStart('mouse',e.clientX,e.clientY)});
+ window.addEventListener('mousemove',function(e){if(mouseDown)pointerMove('mouse',e.clientX,e.clientY)});
+ window.addEventListener('mouseup',function(){mouseDown=false;pointerEnd('mouse')});
+ canvas.addEventListener('touchstart',function(e){e.preventDefault();var t=e.changedTouches[0];pointerStart(t.identifier,t.clientX,t.clientY)},{passive:false});
+ canvas.addEventListener('touchmove',function(e){e.preventDefault();var t=e.changedTouches[0];pointerMove(t.identifier,t.clientX,t.clientY)},{passive:false});
+ canvas.addEventListener('touchend',function(e){pointerEnd(e.changedTouches[0].identifier)});
+}
 canvas.addEventListener('wheel',function(e){e.preventDefault();zoom(e.deltaY<0?1.12:.89,e.clientX,e.clientY)},{passive:false});
-var touches={};if(window.PointerEvent){canvas.addEventListener('pointerdown',function(e){if(e.pointerType!=='touch')return;touches[e.pointerId]={x:e.clientX,y:e.clientY};if(Object.keys(touches).length===2){state.drag=null;state.pan=null;state.pinch=null}});canvas.addEventListener('pointermove',function(e){if(!touches[e.pointerId])return;touches[e.pointerId]={x:e.clientX,y:e.clientY};var keys=Object.keys(touches);if(keys.length===2){var a=touches[keys[0]],b=touches[keys[1]],dist=Math.hypot(a.x-b.x,a.y-b.y);if(state.pinch&&state.pinch.dist){zoom(Math.max(.8,Math.min(1.25,dist/state.pinch.dist)),(a.x+b.x)/2,(a.y+b.y)/2)}state.pinch={dist:dist}}});['pointerup','pointercancel'].forEach(function(evt){canvas.addEventListener(evt,function(e){delete touches[e.pointerId];state.pinch=null})})}
 function assignWorld(input,clearUndo){
  // Validation and migration MUST finish before replacing the active simulation.
  var migrated=Core.normalizeScene(input),candidate=migrated.world;
