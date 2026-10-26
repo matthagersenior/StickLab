@@ -1,0 +1,22 @@
+name: Verify StickLab
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check browser JavaScript syntax
+        run: node --check src/game.js
+      - name: Rebuild standalone HTML
+        run: node scripts/build-offline.cjs
+      - name: Run offline build tests
+        run: node --test tests/*.test.cjs
+      - name: Confirm generated HTML is committed
+        run: git diff --exit-code -- index.html
