@@ -67,3 +67,53 @@ test('v4 scene serialization keeps valid movement goals and rejects malicious co
  const invalid=JSON.parse(JSON.stringify(scene));invalid.world.groups[0].targetX=-1;
  assert.throws(()=>Core.normalizeScene(invalid));
 });
+
+test('fallen supported figure initiates an upright recovery without teleporting its parts',()=>{
+ const {group,parts}=actor();parts.chest.y=parts.hip.y+8;parts.chest.py=parts.chest.y;
+ parts.head.y=parts.hip.y+12;parts.head.py=parts.head.y;
+ const initial=Object.fromEntries(Object.entries(parts).map(([k,p])=>[k,{x:p.x,y:p.y,py:p.py}]));
+ const result=Locomotion.step(group,parts,{direction:1},[],930,60);
+ assert.equal(result.recovering,true,'upper body near/below pelvis should trigger getting up');
+ assert.equal(result.stepping,false,'do not walk normally during a recovery');
+ assert.equal(result.grounded,true,'recovery needs stable contact');
+ assert.equal(parts.chest.y,initial.chest.y,'no position teleport');
+ assert.ok(parts.chest.py>initial.chest.py,'chest must receive upward physical impulse');
+ assert.ok(parts.head.py>initial.head.py,'head must receive upward physical impulse');
+ for(const [k,p] of Object.entries(parts))assert.ok(Math.abs(p.py-initial[k].py)<=9,'recovery impulse capped '+k);
+});
+test('upright and airborne figures do not trigger inappropriate recovery thrust',()=>{
+ const {group,parts}=actor();assert.equal(Locomotion.step(group,parts,{direction:1},[],930,1).recovering,false);
+ Object.values(parts).forEach(p=>{p.y-=280;p.py=p.y});
+ parts.chest.y=parts.hip.y+8;parts.chest.py=parts.chest.y;
+ parts.head.y=parts.hip.y+10;parts.head.py=parts.head.y;
+ const py=parts.chest.py;
+ const status=Locomotion.step(group,parts,{direction:1},[],930,2);
+ assert.equal(status.recovering,false,'midair tumbling should not trigger thrust');
+ assert.equal(parts.chest.py,py,'no midair recovery engine');
+});
+test('helping figure pushes an object only when it is physically within reach and supported',()=>{
+ const {group,parts}=actor();
+ const ball={id:77,kind:'ball',x:527,y:860,px:527,py:860,r:22,fixed:false};
+ const result=Locomotion.step(group,parts,{direction:1,pushTargetId:77},[ball],930,8);
+ assert.equal(result.pushed,true,'helper applies contact impulse when ball is in reach');
+ assert.ok(ball.px<527,'push velocity should act forward on real physics ball');
+ assert.equal(ball.x,527,'ball cannot teleport');
+ assert.equal(Locomotion.step(group,parts,{direction:1,pushTargetId:77},[ball],930,9).pushed,false,'push has tick cooldown');
+ ball.x=900;ball.px=900;
+ assert.equal(Locomotion.step(group,parts,{direction:1,pushTargetId:77},[ball],930,80).pushed,false,'no telekinetic push');
+});
+test('helping cannot push fixed props or push while airborne',()=>{
+ const {group,parts}=actor(),ball={id:12,kind:'ball',x:525,y:855,px:525,py:855,r:18,fixed:true};
+ assert.equal(Locomotion.step(group,parts,{direction:1,pushTargetId:12},[ball],930,20).pushed,false);
+ assert.equal(ball.px,525);
+ ball.fixed=false;Object.values(parts).forEach(p=>{p.y-=240;p.py=p.y});
+ assert.equal(Locomotion.step(group,parts,{direction:1,pushTargetId:12},[ball],930,22).pushed,false);
+});
+test('Help mode chooses a nearby ball to push, but never fabricates a target for an absent ball',()=>{
+ const g={id:'f10',ai:true,mode:'help',personality:'helpful'};
+ const hip=node(1,500,850),ball={id:11,kind:'ball',x:531,y:853,r:21,fixed:false,px:531,py:853};
+ assert.equal(Brain.decide(g,hip,[ball],ball,20,930).pushTargetId,11);
+ const far={...ball,x:870};
+ assert.equal(Brain.decide(g,hip,[far],far,21,930).pushTargetId,null);
+ assert.equal(Brain.decide(g,hip,[],null,22,930).pushTargetId,null);
+});
