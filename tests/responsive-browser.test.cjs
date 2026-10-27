@@ -273,7 +273,9 @@ test('phone screenshot scenario: Walk is visible despite paused Physics Puzzles 
   assert.equal(await button.isVisible(),true,'Walk must be available directly in the mobile toolbar');
   await page.locator('#openMenu').click();
   await page.locator('.side-scroll').evaluate(el=>el.scrollTop=el.scrollHeight);
-  await page.locator('#openMenu').click(); // sidebar may cover this top button; alternatively close through tool
+  await page.locator('.side-scroll [data-tool="goto"]').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false,'Walk should dismiss the scrolled menu');
+  await page.locator('.mobiletools [data-tool="grab"]').click();
   await button.click();
   assert.equal(await page.evaluate(()=>window.StickLab.getState().tool),'goto');
   assert.ok(await page.evaluate(()=>window.StickLab.getState().selected!==null),'automatically choose an existing resident');
