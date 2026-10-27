@@ -56,7 +56,7 @@ function updateControlHint(){var label=$('controlHint');if(!label)return;var g=s
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
- if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
+ if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.motionState==='getting-up'?'Getting up':g.motionState==='pushing'?'Pushing nearby object':g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
  else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · '+Math.min(active,limits[profile].agents)+' thinking ('+profile+')':' · AI off')+(g?' · passive ragdoll selected':'');
  $('releaseResident').disabled=!g;
  $('residentMode').disabled=!g||!g.ai;
@@ -104,11 +104,15 @@ function motionParts(g){
  var ids=g.nodes,at=function(i){return findPart(ids[i])};
  // Stored v1–v4 figure nodes retain this canonical head/torso/hip/knee/foot order.
  if(ids.length<14)return null;
- return {head:at(0),chest:at(2),hip:findPart(g.hip)||at(3),lk:at(10),rk:at(11),lf:at(12),rf:at(13)};
+ return {head:at(0),chest:at(2),hip:findPart(g.hip)||at(3),ls:at(4),rs:at(5),lh:at(8),rh:at(9),lk:at(10),rk:at(11),lf:at(12),rf:at(13)};
 }
 function driveFigure(g,command){
  var parts=motionParts(g);if(!parts)return;
- var nearby=world.parts.filter(function(p){return !p.group&&p.kind==='box'&&p.fixed&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190}).slice(0,8);
+ var nearby=[];
+ for(var i=0;i<world.parts.length&&nearby.length<20;i++){
+  var p=world.parts[i];if(!p.group&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190&&
+    (p.kind==='box'||p.kind==='ball'||p.kind==='wheel'))nearby.push(p);
+ }
  return Locomotion.step(g,parts,command,nearby,FLOOR,state.tick);
 }
 function ensureControlledFigure(){
@@ -542,5 +546,5 @@ function controls(){
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updateGameModes();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
+window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
 })();
