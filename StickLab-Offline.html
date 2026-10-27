@@ -187,7 +187,7 @@
 <div class="eyebrow">Living figures</div>
 <label class="resident-toggle"><input type="checkbox" id="aiEnabled" checked> Enable autonomous inhabitants</label>
 <p class="fineprint" id="residentStatus" aria-live="polite">Select a resident in Grab mode to take control.</p>
-<label class="form-row" for="residentMode">Selected resident's behavior</label><select id="residentMode" aria-label="Resident behavior"><option value="wander">Explore and investigate</option><option value="help">Help with experiments</option><option value="rest">Rest / idle</option><option value="go">Walking to destination</option></select>
+<label class="form-row" for="residentMode">Selected resident's behavior</label><select id="residentMode" aria-label="Resident behavior"><option value="wander">Explore and investigate</option><option value="help">Help · push nearby balls</option><option value="rest">Rest / idle</option><option value="go">Walking to destination</option></select>
 <div class="togglebar"><button class="smallbtn" id="applyResidentMode">Apply behavior</button><button class="smallbtn" id="goHere" type="button">📍 Walk to a point</button><button class="smallbtn" id="unhookFigure" type="button">✂ Unhook figure</button><button class="smallbtn" id="releaseResident">Release control</button></div>
 <p class="fineprint">Physics Figures are full ragdolls: drag, drop, collide, attach or unhook them. Residents walk automatically. Tap Walk, then tap a destination; Walk releases outside ropes before moving, while keeping the figure's bones intact. The AI toggle affects all figures and does not disable physics.</p>
 <div class="eyebrow">Construction material</div><select id="material" aria-label="Select construction material"><option value="wood">Wood · breakable</option><option value="rubber">Rubber · resilient</option><option value="steel">Steel · strongest</option></select><div class="eyebrow" id="challengeSection">Optional Physics Challenges</div><p class="fineprint">Sandbox is always free to play. Choose a level when you want a physics goal; you can return to your sandbox afterward.</p><div class="scene-grid"><button class="scene-btn" data-level="0">01 · First Push</button><button class="scene-btn" data-level="1">02 · Bridge the Gap</button><button class="scene-btn" data-level="2">03 · Over the Wall</button></div><p class="fineprint" id="challengeStatus" aria-live="polite">Sandbox mode · No win condition</p><div class="togglebar"><button class="smallbtn" id="hintLevel">Hint</button><button class="smallbtn" id="restartLevel">Restart level</button><button class="smallbtn" id="nextLevel">Next level</button></div><div class="togglebar"><button class="smallbtn" id="freeSandbox">← Return to Free Sandbox</button></div><div class="eyebrow">Quick worlds</div><div class="scene-grid"><button class="scene-btn" data-scene="playground">Playground</button><button class="scene-btn" data-scene="tower">Tower</button><button class="scene-btn" data-scene="chaos">Chaos</button></div>
@@ -195,7 +195,7 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.4</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.5</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
@@ -356,7 +356,7 @@ var personalities=['curious','cautious','helpful'],modes=['wander','help','rest'
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
 function decide(group,hip,nearby,goal,tick,floor){
- var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,memory:memory};
+ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,pushTargetId:null,memory:memory};
  if(!group||!group.ai||group.mode==='rest'||!hip)return result;
  nearby=nearby||[];floor=floor||930;
  var mode=modes.indexOf(group.mode)<0?'wander':group.mode;
@@ -378,7 +378,9 @@ function decide(group,hip,nearby,goal,tick,floor){
  }
  if(hazard){result.intent='avoid';result.direction=hazard.x>=hip.x?-1:1;memory.hazards=Math.min(99,memory.hazards+1);memory.lastHazardX=hazard.x;return result}
  if(mode==='go'&&typeof group.targetX==='number'&&isFinite(group.targetX)){var distance=group.targetX-hip.x;result.intent=Math.abs(distance)<=26?'arrived':'go';result.direction=Math.abs(distance)<=26?0:(distance>0?1:-1)}
- else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<28?0:(delta>0?1:-1);
+ else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<18?0:(delta>0?1:-1);
+   // Help mode can deliberately push a loose ball once it is in physical reach.
+   if(goal.kind==='ball'&&!goal.fixed&&Math.abs(delta)<80&&Math.abs(goal.y-hip.y)<75)result.pushTargetId=goal.id;
    if(wheel&&personality==='helpful'){result.activateMotorId=wheel.id;memory.interactions=Math.min(99,memory.interactions+1)}
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}
@@ -412,12 +414,32 @@ function nudgeX(p,amount){if(!p||p.fixed)return;p.px-=clamp(amount,1.2)}
 function nudgeY(p,amount){if(!p||p.fixed)return;p.py+=clamp(amount,8)}
 function step(group,parts,command,terrain,floor,tick){
  command=command||{};parts=parts||{};
- var hip=parts.hip,chest=parts.chest,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
- var status={grounded:false,stepping:false,jumped:false};
+ var hip=parts.hip,chest=parts.chest,head=parts.head,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
+ var status={grounded:false,stepping:false,jumped:false,recovering:false,pushed:false};
  if(!hip||hip.fixed||!feet[0]||!feet[1])return status;
  var left=isSupported(feet[0],terrain,floor),right=isSupported(feet[1],terrain,floor);
+ // Fallen residents can get back up from knees, hands or head contact too.
+ var braced=isSupported(parts.lk,terrain,floor)||isSupported(parts.rk,terrain,floor)||isSupported(parts.lh,terrain,floor)||isSupported(parts.rh,terrain,floor);
+ var toppled=!!(chest&&head&&(chest.y>hip.y-13||head.y>hip.y-36));
  status.grounded=left||right;
+ var supported=status.grounded||braced||(toppled&&isSupported(head,terrain,floor));
  var direction=command.direction>0?1:command.direction<0?-1:0;
+ if(!supported)return status;
+ if(toppled){
+  status.recovering=true;
+  group.motionState='getting-up';
+  var recoveryTick=finite(group.lastRecoveryTick)?group.lastRecoveryTick:-1000;
+  if((tick||0)-recoveryTick>=8){
+   // Joint velocity corrections only; constraints and collisions do the actual lifting.
+   nudgeY(chest,4.4);nudgeY(head,3.2);nudgeY(hip,1.2);
+   nudgeY(parts.ls,1.5);nudgeY(parts.rs,1.5);
+   nudgeX(chest,clamp(hip.x-chest.x,10)*.075);
+   nudgeX(head,clamp(hip.x-head.x,13)*.075);
+   group.lastRecoveryTick=tick||0;
+  }
+  return status;
+ }
+ group.motionState=direction?'walking':'standing';
  if(!status.grounded)return status;
  var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3;
  nudgeX(hip,clamp((rate-forward)*.14,.34));
@@ -441,6 +463,20 @@ function step(group,parts,command,terrain,floor,tick){
   nudgeX(hip,clamp(-forward*.12,.35));
  }
  var last=finite(group.lastJumpTick)?group.lastJumpTick:-1000;
+ // A grounded helper nudges a nearby free object, transferring momentum by contact.
+ var target=null,near=terrain||[];
+ if(direction&&finite(command.pushTargetId)){
+  for(var t=0;t<near.length&&t<32;t++){if(near[t]&&near[t].id===command.pushTargetId){target=near[t];break}}
+ }
+ var lastPush=finite(group.lastPushTick)?group.lastPushTick:-1000;
+ if(target&&!target.fixed&&(target.kind==='ball'||target.kind==='wheel'||target.kind==='box')&&
+    Math.abs(target.x-hip.x)<=(target.r||Math.max(target.w||0,target.h||0)/2||20)+44&&
+    Math.abs(target.y-hip.y)<=(target.r||Math.max(target.w||0,target.h||0)/2||20)+38&&
+    (target.x-hip.x)*direction>=-8&&(tick||0)-lastPush>=18){
+   nudgeX(target,direction*1.2);nudgeX(hip,-direction*.14);
+   nudgeX(chest,-direction*.1);
+   status.pushed=true;group.lastPushTick=tick||0;group.motionState='pushing';
+ }
  if(command.jump&&tick-last>=48){
   // Reaction is an impulse to body velocities, not a position teleport.
   nudgeY(hip,6.7);nudgeY(chest,5.6);
@@ -512,7 +548,7 @@ function updateControlHint(){var label=$('controlHint');if(!label)return;var g=s
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
- if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
+ if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.motionState==='getting-up'?'Getting up':g.motionState==='pushing'?'Pushing nearby object':g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
  else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · '+Math.min(active,limits[profile].agents)+' thinking ('+profile+')':' · AI off')+(g?' · passive ragdoll selected':'');
  $('releaseResident').disabled=!g;
  $('residentMode').disabled=!g||!g.ai;
@@ -560,11 +596,15 @@ function motionParts(g){
  var ids=g.nodes,at=function(i){return findPart(ids[i])};
  // Stored v1–v4 figure nodes retain this canonical head/torso/hip/knee/foot order.
  if(ids.length<14)return null;
- return {head:at(0),chest:at(2),hip:findPart(g.hip)||at(3),lk:at(10),rk:at(11),lf:at(12),rf:at(13)};
+ return {head:at(0),chest:at(2),hip:findPart(g.hip)||at(3),ls:at(4),rs:at(5),lh:at(8),rh:at(9),lk:at(10),rk:at(11),lf:at(12),rf:at(13)};
 }
 function driveFigure(g,command){
  var parts=motionParts(g);if(!parts)return;
- var nearby=world.parts.filter(function(p){return !p.group&&p.kind==='box'&&p.fixed&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190}).slice(0,8);
+ var nearby=[];
+ for(var i=0;i<world.parts.length&&nearby.length<20;i++){
+  var p=world.parts[i];if(!p.group&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190&&
+    (p.kind==='box'||p.kind==='ball'||p.kind==='wheel'))nearby.push(p);
+ }
  return Locomotion.step(g,parts,command,nearby,FLOOR,state.tick);
 }
 function ensureControlledFigure(){
@@ -970,7 +1010,7 @@ function controls(){
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
- $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){changeResidentMode(g.id,$('residentMode').value);toast(g.name+' set to '+g.mode)}else toast('Select a living figure in Grab mode first')};
+ $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};
  $('unhookFigure').onclick=function(){unhookFigure()};
  $('unhookMobile').onclick=function(){unhookFigure()};
@@ -998,6 +1038,6 @@ function controls(){
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updateGameModes();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
+window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
 })();
 </script></body></html>
