@@ -486,3 +486,14 @@ test('Help mode nudges a physically reachable ball in the full simulator',()=>{
  assert.ok(after.x>840,'contact must push ball forward, measured '+after.x);
  assert.ok(resident.motionState==='pushing'||resident.motionState==='walking','AI should be actuating nearby physics rather than teleporting it');
 });
+
+test('applying Help releases direct control and resumes a paused world for autonomous physics',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(790,854);
+ assert.equal(api.selectResident(hip.group),true);
+ nodes.pause.onclick();assert.equal(api.getState().paused,true);
+ nodes.residentMode.value='help';nodes.applyResidentMode.onclick();
+ assert.equal(api.getState().selected,null,'Help must not remain blocked by direct selection');
+ assert.equal(api.getState().paused,false,'Help starts physics to make an observable action');
+ assert.equal(api.getResidents()[0].mode,'help');
+});
