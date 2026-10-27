@@ -366,3 +366,41 @@ test('Go Here can animate a passive ragdoll and rejects invalid destinations',()
  assert.equal(api.getResidents()[0].mode,'go');
  assert.equal(api.getResidents()[0].targetX,850);
 });
+
+test('Walk tool auto-selects an existing figure, enables AI, and resumes paused physics after destination',()=>{
+ const {api,nodes}=engine(true);
+ api.createWorld('empty');api.spawnResident(800,850);
+ assert.equal(api.getState().selected,null);
+ api.setAIEnabled(false);
+ nodes.pause.onclick();
+ assert.equal(api.getState().paused,true);
+ api.setTool('goto');
+ assert.equal(api.getState().tool,'goto');
+ assert.ok(api.getState().selected,'Walk must automatically choose a usable figure');
+ assert.match(nodes.controlHint.textContent,/tap.*destina|walk/i);
+ tapAtWorld(api,nodes,1030,840,45);
+ assert.equal(api.getState().tool,'grab');
+ assert.equal(api.getState().selected,null);
+ assert.equal(api.getState().paused,false,'issuing a movement command should start a paused simulation');
+ assert.equal(api.getState().aiEnabled,true,'walk command should explicitly activate resident locomotion');
+ assert.equal(api.getResidents()[0].mode,'go');
+ const w=api.getWorld(),id=w.groups[0].hip,old=w.parts.find(p=>p.id===id).x;
+ for(let i=0;i<170;i++)api.step();
+ assert.ok(api.getWorld().parts.find(p=>p.id===id).x>old+5,'physics must move resident toward its goal');
+});
+test('Walk on an empty scene explains that a figure is needed, without changing tools or spawning one',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ api.setTool('goto');
+ assert.equal(api.getState().tool,'grab');
+ assert.equal(api.getState().selected,null);
+ assert.equal(api.getWorld().groups.length,0);
+ assert.match(nodes.notice.textContent,/resident|ragdoll|figure/i);
+});
+test('Walk may be cancelled with Grab without moving the current scene',()=>{
+ const {api}=engine(true);api.createWorld('empty');api.spawnResident(700,850);
+ const before=JSON.stringify(api.getWorld());
+ api.setTool('goto');assert.equal(api.getState().tool,'goto');
+ api.setTool('grab');
+ assert.equal(api.getState().tool,'grab');
+ assert.equal(JSON.stringify(api.getWorld()),before);
+});
