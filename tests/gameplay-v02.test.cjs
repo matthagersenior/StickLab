@@ -404,3 +404,44 @@ test('Walk may be cancelled with Grab without moving the current scene',()=>{
  assert.equal(api.getState().tool,'grab');
  assert.equal(JSON.stringify(api.getWorld()),before);
 });
+
+test('Playground starts with grounded stick figures that can participate in physics, not suspended hostages',()=>{
+ const {api}=engine();const w=api.getWorld();
+ assert.ok(w.groups.length>=2,'default world contains stick figures');
+ for(const g of w.groups){
+  const external=w.links.filter(l=>['rope','spring','hinge'].includes(l.type)&&(g.nodes.includes(l.a)||g.nodes.includes(l.b)));
+  assert.equal(external.length,0,'no default figure should be tied to an anchor');
+ }
+ assert.ok(w.groups.some(g=>{const feet=g.nodes.slice(-2).map(id=>w.parts.find(p=>p.id===id));return feet.every(p=>p&&p.y+p.r>=927)}),'at least one figure starts standing on ground');
+});
+test('Engineering Lab starts with an interactive figure and a passive ragdoll alongside machines',()=>{
+ const {api}=engine();api.selectGameMode('engineering');const w=api.getWorld();
+ assert.ok(w.groups.some(g=>g.ai),'a walker should be available for moving around machine parts');
+ assert.ok(w.groups.some(g=>!g.ai),'a physics-only ragdoll should be available for experiments');
+ assert.ok(w.parts.some(p=>p.kind==='wheel'),'machine starter parts remain');
+});
+test('Walk command frees an externally tethered stick figure without deleting its body or anchor',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const hip=api.spawnResident(760,760),id=api.getWorld().groups[0].id;
+ const before=api.getWorld(),g=before.groups[0],anchor={id:before.next,kind:'anchor',x:760,y:400,r:9,fixed:true},rope={id:before.next+1,a:anchor.id,b:g.head,type:'rope',len:280,k:.96};
+ before.parts.push(anchor);before.links.push(rope);before.next+=2;
+ api.importScene({format:'StickLab',version:4,world:before});
+ assert.equal(api.getWorld().links.filter(l=>l.type==='rope').length,1);
+ assert.equal(api.setResidentTarget(id,1040),true);
+ const after=api.getWorld();
+ assert.equal(after.links.filter(l=>l.type==='rope').length,0,'Walk should release an external suspension rope');
+ assert.ok(after.groups.some(x=>x.id===id),'figure must not be deleted');
+ assert.ok(after.parts.some(p=>p.id===anchor.id),'anchor remains available');
+ assert.equal(after.links.filter(l=>l.type==='bone').length,before.links.filter(l=>l.type==='bone').length,'ragdoll skeleton intact');
+});
+test('Ragdolls are freely draggable and can act as physical experiment subjects',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const hip=api.spawnResident(750,840),id=hip.group;
+ assert.equal(api.getWorld().groups.length,1);
+ const g=api.getWorld().groups[0];
+ assert.ok(g.nodes.length>=14);
+ api.setResidentTarget(id,910);
+ const old=api.getWorld().parts.find(p=>p.id===g.hip).x;
+ for(let i=0;i<150;i++)api.step();
+ assert.ok(api.getWorld().parts.find(p=>p.id===g.hip).x>old+5,'figure physically walks, allowing experiments with other bodies');
+});
