@@ -1,4 +1,8 @@
-# StickLab v0.5.3 — Walk Without Manual Steering
+# StickLab v0.5.4 — Free Physics Figures
+
+The default Playground no longer leaves a stick figure hanging from its head. Engineering Lab now starts with a walker and a physical ragdoll, not machines alone. **Physics** adds a freely jointed figure, **Walk** automatically unhooks external ropes before traveling, and **✂ Unhook** releases existing connections without deleting the figure or its bones. [v0.5.4 release notes](docs/releases/v0.5.4-physics-figures.md).
+
+
 
 **On phones:** Tap **📍 Walk** in the bottom tool strip, then tap the destination. StickLab chooses the nearest figure, starts a paused world, enables movement AI, and makes it attempt to walk there. No separate Grab selection is required. See [v0.5.3 release notes](docs/releases/v0.5.3-walk-usability.md).
 
