@@ -1,4 +1,8 @@
-# StickLab v0.5.1 — Five Ways to Play
+# StickLab v0.5.2 — Physics-powered Figures
+
+**Automatic walking:** Residents and selected ragdolls now move with staggered foot steps, grounded impulses, and balance correction rather than just sliding all their joints. Select one with **Grab**, press **📍 Go Here**, and tap a destination. It walks using gravity and collisions without requiring you to steer each joint. Existing Explore/Help AI and manual arrow controls use the same locomotion. [v0.5.2 release notes](docs/releases/v0.5.2-walking.md).
+
+
 
 **Physics Puzzle fix:** Selecting **Physics Puzzles** now opens a full-screen level chooser, showing unlocked levels immediately regardless of your sidebar scroll position. Tap **First Push** to begin Level 1, or Back to Games to cancel. [See v0.5.1 fix](docs/releases/v0.5.1-puzzle-picker.md).
 
