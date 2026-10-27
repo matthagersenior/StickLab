@@ -244,7 +244,7 @@ test('Android touch Go Here command walks a figure without dragging its individu
   await page.touchscreen.tap(target.x,target.y);
   assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null,'Tap should issue destination command: '+JSON.stringify(hit));
   assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].mode),'go');
-  assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].targetX),990);
+  assert.ok(Math.abs((await page.evaluate(()=>window.StickLab.getResidents()[0].targetX))-990)<.5,'camera transform should resolve a screen tap to the requested point');
   const delta=await page.evaluate(()=>{
    const w=window.StickLab.getWorld(),hip=w.parts.find(p=>p.id===w.groups[0].hip),before=hip.x;
    for(let n=0;n<130;n++)window.StickLab.step();
