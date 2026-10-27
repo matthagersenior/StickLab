@@ -338,3 +338,31 @@ test('invalid game type is rejected without destroying current sandbox',()=>{
  assert.equal(api.selectGameMode('nonexistent'),false);
  assert.equal(JSON.stringify(api.getWorld()),original);
 });
+
+test('Go Here chooses a destination with one touch and then lets the resident walk independently',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(700,850),resident=api.getResidents()[0];
+ assert.ok(api.selectResident(resident.id));
+ assert.equal(nodes.goHere.disabled,false);
+ nodes.goHere.onclick();
+ assert.equal(api.getState().tool,'goto');
+ tapAtWorld(api,nodes,1000,850,35);
+ assert.equal(api.getState().tool,'grab');
+ assert.equal(api.getState().selected,null,'resident must be released to let AI drive');
+ const walking=api.getResidents()[0];assert.equal(walking.mode,'go');assert.equal(walking.targetX,1000);
+ const before=api.getWorld().parts.find(p=>p.id===hip.id).x;
+ for(let n=0;n<170;n++)api.step();
+ const after=api.getWorld().parts.find(p=>p.id===hip.id).x;
+ assert.ok(after>before+5,'resident must advance under its own physics rather than requiring limb controls');
+});
+test('Go Here can animate a passive ragdoll and rejects invalid destinations',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const g=api.spawnResident(750,850).group; // a resident is also a full ragdoll
+ assert.equal(api.setResidentTarget(g,-5),false);
+ assert.equal(api.setResidentTarget(g,850),true);
+ assert.equal(api.getResidents()[0].targetX,850);
+ const normalized=api.getWorld();
+ api.importScene({format:'StickLab',version:4,world:normalized});
+ assert.equal(api.getResidents()[0].mode,'go');
+ assert.equal(api.getResidents()[0].targetX,850);
+});
