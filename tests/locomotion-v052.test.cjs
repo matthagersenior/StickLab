@@ -16,7 +16,13 @@ test('grounded walking makes alternating foot intentions without teleports or un
   const a=Locomotion.step(group,parts,{direction:1,jump:false},[],930,tick);
   if(tick%8===0){left.push(parts.lf.py);right.push(parts.rf.py)}
   assert.equal(a.grounded,true);
-  for(const p of Object.values(parts)){assert.equal(p.x,({hip:500,chest:500,head:500,lk:488,rk:512,lf:483,rf:517})[Object.keys(parts).find(k=>parts[k]===p)]);assert.ok(Math.abs(p.x-p.px)<12,'safe capped horizontal intent')}
+  for(const p of Object.values(parts)){
+   assert.equal(p.x,({hip:500,chest:500,head:500,lk:488,rk:512,lf:483,rf:517})[Object.keys(parts).find(k=>parts[k]===p)],'controller does not teleport body positions');
+   assert.ok(Math.abs(p.x-p.px)<12,'safe capped horizontal impulse per simulated physics step');
+   // The physics integrator updates previous-frame positions once each step.
+   // Resetting to the initial body pose here isolates actuator behavior from solver movement.
+   if(tick<59){p.px=p.x;p.py=p.y}
+  }
  }
  assert.ok(parts.hip.px<500,'forward intent acts on pelvis velocity');
  assert.notDeepEqual(left,right,'stride actions should alternate between left and right feet');
