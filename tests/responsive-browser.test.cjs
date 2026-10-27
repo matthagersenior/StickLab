@@ -321,3 +321,36 @@ test('Physics figures appear in Engineering and Playground, with visible Unhook 
   await ctx.close();
  }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
+
+test('mobile Help behavior releases control and pushes a ball in the simulated world',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.evaluate(()=>{
+   const api=window.StickLab;api.createWorld('empty');const hip=api.spawnResident(800,854);
+   const w=api.getWorld(),id=w.next;
+   w.parts.push({id,kind:'ball',x:840,y:900,px:840,py:900,r:22,fixed:false});w.next++;
+   api.importScene({format:'StickLab',version:4,world:w});
+   api.selectResident(hip.group);
+  });
+  await page.locator('#pause').click();
+  await page.locator('#openMenu').click();
+  await page.locator('#residentMode').selectOption('help');
+  await page.locator('#applyResidentMode').click();
+  const result=await page.evaluate(()=>{
+   const api=window.StickLab;
+   const state=api.getState();
+   for(let i=0;i<20;i++)api.step();
+   return{selected:state.selected,paused:state.paused,x:api.getWorld().parts.find(p=>p.kind==='ball').x,mode:api.getResidents()[0].mode};
+  });
+  assert.equal(result.selected,null,'helping must no longer be blocked by manual control');
+  assert.equal(result.paused,false);
+  assert.equal(result.mode,'help');
+  assert.ok(result.x>840,'nearby ball should move under contact physics, measured '+result.x);
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
+});
