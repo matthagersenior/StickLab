@@ -160,6 +160,12 @@
  .puzzle-picker-level .level-state{font-size:10px}
  #puzzlePickerStatus{margin:7px 0}
 }
+
+/* A sidebar animating out must never intercept a quick destination tap. */
+@media (max-width:690px), (max-width:1180px) and (pointer:coarse) {
+ .side:not(.open){pointer-events:none}
+ .side.open{pointer-events:auto}
+}
 </style><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" type="image/svg+xml" href="./icon.svg"></head>
 <body><div class="app">
 <aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll">
@@ -926,7 +932,7 @@ function controls(){
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){changeResidentMode(g.id,$('residentMode').value);toast(g.name+' set to '+g.mode)}else toast('Select a living figure in Grab mode first')};
- $('goHere').onclick=function(){if(!selectedResident()){toast('Select a figure with Grab first');return}setTool('goto');toast('Tap where the figure should walk')};
+ $('goHere').onclick=function(){if(!selectedResident()){toast('Select a figure with Grab first');return}setTool('goto');$('sidebar').classList.remove('open');toast('Tap where the figure should walk')};
  $('gravity').oninput=function(){options.gravity=+this.value;$('gravNum').textContent=this.value};$('speed').oninput=function(){options.speed=+this.value;$('speedNum').textContent=options.speed.toFixed(2)+'×'};$('bouncy').oninput=function(){options.bounce=+this.value/100;$('bounceNum').textContent=this.value+'%'};$('quality').onchange=function(){options.quality=this.value;setProfile();toast('Performance: '+profile)};
  $('save').onclick=saveLocal;$('load').onclick=loadLocal;$('export').onclick=exportWorld;$('import').onclick=function(){$('fileInput').click()};$('fileInput').onchange=function(){importFile(this.files[0]);this.value=''};$('undo').onclick=undo;$('reset').onclick=function(){newWorld('empty');toast('Blank world ready')};$('snapshot').onclick=screenshot;
  $('help').onclick=function(){modal(true)};$('closeModal').onclick=function(){modal(false)};$('startGame').onclick=function(){modal(false)};$('helpClose').onclick=function(){modal(false)};$('modalWrap').onclick=function(e){if(e.target===this)modal(false)};
