@@ -445,3 +445,17 @@ test('Ragdolls are freely draggable and can act as physical experiment subjects'
  for(let i=0;i<150;i++)api.step();
  assert.ok(api.getWorld().parts.find(p=>p.id===g.hip).x>old+5,'figure physically walks, allowing experiments with other bodies');
 });
+
+test('Unhook action releases a legacy hanging figure for sandbox experiments and Undo restores rope',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(680,730),w=api.getWorld(),g=w.groups[0];
+ const anchor={id:w.next,kind:'anchor',x:680,y:360,r:9,fixed:true};
+ w.parts.push(anchor);w.links.push({id:w.next+1,a:anchor.id,b:g.head,type:'rope',len:280,k:.96});w.next+=2;
+ api.importScene({format:'StickLab',version:4,world:w});
+ assert.equal(api.getWorld().links.filter(l=>l.type==='rope').length,1);
+ assert.equal(api.unhookFigure(g.id),1);
+ const freed=api.getWorld();assert.equal(freed.links.filter(l=>l.type==='rope').length,0);
+ assert.ok(freed.parts.find(p=>p.id===hip.id));
+ nodes.undo.onclick();
+ assert.equal(api.getWorld().links.filter(l=>l.type==='rope').length,1,'Undo restores external connection');
+});
