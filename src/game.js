@@ -67,7 +67,7 @@ function updateResidents(){
 function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
 function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
 function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
-function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0)return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.brain=null;updateResidents();return true}
+function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.brain=null;updateResidents();return true}
 function setResidentTarget(id,x){
  var g=findGroup(id);
  if(!g||typeof x!=='number'||!isFinite(x)||x<0||x>W)return false;
