@@ -240,8 +240,9 @@ test('Android touch Go Here command walks a figure without dragging its individu
    const c=window.StickLab.getCamera(),r=document.querySelector('#canvas').getBoundingClientRect();
    return{x:r.left+r.width/2+(990-c.x)*c.z,y:r.top+r.height/2+(850-c.y)*c.z};
   });
+  const hit=await page.evaluate(p=>{var n=document.elementFromPoint(p.x,p.y);return {node:n&&n.tagName,id:n&&n.id,klass:n&&n.className,x:p.x,y:p.y,tool:window.StickLab.getState().tool}},target);
   await page.touchscreen.tap(target.x,target.y);
-  assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null);
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null,'Tap should issue destination command: '+JSON.stringify(hit));
   assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].mode),'go');
   assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].targetX),990);
   const delta=await page.evaluate(()=>{
