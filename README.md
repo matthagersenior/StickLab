@@ -1,4 +1,8 @@
-# StickLab v0.5.2 — Physics-powered Figures
+# StickLab v0.5.3 — Walk Without Manual Steering
+
+**On phones:** Tap **📍 Walk** in the bottom tool strip, then tap the destination. StickLab chooses the nearest figure, starts a paused world, enables movement AI, and makes it attempt to walk there. No separate Grab selection is required. See [v0.5.3 release notes](docs/releases/v0.5.3-walk-usability.md).
+
+
 
 **Automatic walking:** Residents and selected ragdolls now move with staggered foot steps, grounded impulses, and balance correction rather than just sliding all their joints. Select one with **Grab**, press **📍 Go Here**, and tap a destination. It walks using gravity and collisions without requiring you to steer each joint. Existing Explore/Help AI and manual arrow controls use the same locomotion. [v0.5.2 release notes](docs/releases/v0.5.2-walking.md).
 

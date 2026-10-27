@@ -255,3 +255,41 @@ test('Android touch Go Here command walks a figure without dragging its individu
   await ctx.close();
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
 });
+
+test('phone screenshot scenario: Walk is visible despite paused Physics Puzzles and unselected resident',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.locator('#pause').click();
+  await page.locator('#challengeAction').click();
+  await page.locator('[data-game="puzzles"]').click();
+  await page.locator('#closePuzzlePicker').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().challenge),null);
+  await page.evaluate(()=>window.StickLab.setAIEnabled(false));
+  const button=page.locator('.mobiletools [data-tool="goto"]');
+  assert.equal(await button.isVisible(),true,'Walk must be available directly in the mobile toolbar');
+  await page.locator('#openMenu').click();
+  await page.locator('.side-scroll').evaluate(el=>el.scrollTop=el.scrollHeight);
+  await page.locator('.side-scroll [data-tool="goto"]').click();
+  assert.equal(await page.locator('#sidebar').evaluate(el=>el.classList.contains('open')),false,'Walk should dismiss the scrolled menu');
+  await page.locator('.mobiletools [data-tool="grab"]').click();
+  await button.click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().tool),'goto');
+  assert.ok(await page.evaluate(()=>window.StickLab.getState().selected!==null),'automatically choose an existing resident');
+  assert.match(await page.locator('#controlHint').textContent(),/tap.*walk/i);
+  const target=await page.evaluate(()=>{
+   const c=window.StickLab.getCamera(),r=document.querySelector('#canvas').getBoundingClientRect();
+   return {x:r.left+r.width/2+(1040-c.x)*c.z,y:r.top+r.height/2+(845-c.y)*c.z};
+  });
+  await page.touchscreen.tap(target.x,target.y);
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null);
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().paused),false,'Walk must resume paused game');
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().aiEnabled),true,'Walk must enable locomotion');
+  assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].mode),'go');
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
+});
