@@ -518,7 +518,7 @@ function controls(){
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
- $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){changeResidentMode(g.id,$('residentMode').value);toast(g.name+' set to '+g.mode)}else toast('Select a living figure in Grab mode first')};
+ $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};
  $('unhookFigure').onclick=function(){unhookFigure()};
  $('unhookMobile').onclick=function(){unhookFigure()};
