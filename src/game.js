@@ -26,7 +26,7 @@ try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getI
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
 var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Go Here.</b> Tap the destination in the world. Your stick figure will walk there using its own feet, physics, and balance.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination on the playfield to send the nearest figure there. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
 function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
@@ -52,7 +52,7 @@ function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
-function updateControlHint(){var label=$('controlHint');if(!label)return;var g=selectedResident();label.textContent=g?'Controlling: '+(g.name||'Figure'):'Arrows select a figure'}
+function updateControlHint(){var label=$('controlHint');if(!label)return;var g=selectedResident();label.textContent=state.tool==='goto'?'📍 Tap where '+(g?g.name:'the figure')+' should walk':g?'Controlling: '+(g.name||'Figure'):'Arrows select a figure'}
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
@@ -61,7 +61,7 @@ function updateResidents(){
  $('releaseResident').disabled=!g;
  $('residentMode').disabled=!g||!g.ai;
  $('applyResidentMode').disabled=!g||!g.ai;
- $('goHere').disabled=!g;
+ $('goHere').disabled=false;
  updateControlHint();
 }
 function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
@@ -73,6 +73,8 @@ function setResidentTarget(id,x){
  if(!g||typeof x!=='number'||!isFinite(x)||x<0||x>W)return false;
  // Every figure can receive a high-level walking instruction, including old passive ragdolls.
  g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.intent='go';
+ // Choosing Walk is an explicit request to animate; never leave it silently paused.
+ world.aiEnabled=true;state.paused=false;updatePause();
  state.selected=null;state.drag=null;updateResidents();
  return true;
 }
@@ -102,7 +104,21 @@ function ensureControlledFigure(){
  return best;
 }
 function isCompactLayout(){return window.matchMedia?window.matchMedia('(max-width: 690px), (max-width: 1180px) and (pointer: coarse)').matches:window.innerWidth<=690}
-function setTool(name){if(!toolHints[name])return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();if(isCompactLayout())$('sidebar').classList.remove('open')}
+function prepareWalking(){
+ if(selectedResident())return true;
+ var nearest=null,score=Infinity;
+ for(var i=0;i<world.groups.length;i++){
+  var group=world.groups[i],hip=findPart(group.hip);
+  if(!hip||hip.fixed)continue;
+  var onScreen=Math.abs(hip.x-cam.x)<=width/(2*cam.z)&&Math.abs(hip.y-cam.y)<=height/(2*cam.z);
+  var d=(onScreen?0:2000)+Math.hypot(hip.x-cam.x,hip.y-cam.y);
+  if(d<score){nearest=group;score=d}
+ }
+ if(!nearest){toast('Place a Resident or Ragdoll first, then tap Walk');return false}
+ state.selected=nearest.hip;state.drag=null;state.pan=null;
+ updateResidents();return true;
+}
+function setTool(name){if(!toolHints[name])return;if(name==='goto'&&!prepareWalking())return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();updateControlHint();if(isCompactLayout())$('sidebar').classList.remove('open');if(name==='goto')toast('Tap your destination · press Grab to cancel')}
 function updatePause(){
  $('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';
  var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];
@@ -476,7 +492,7 @@ function controls(){
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){changeResidentMode(g.id,$('residentMode').value);toast(g.name+' set to '+g.mode)}else toast('Select a living figure in Grab mode first')};
- $('goHere').onclick=function(){if(!selectedResident()){toast('Select a figure with Grab first');return}setTool('goto');$('sidebar').classList.remove('open');toast('Tap where the figure should walk')};
+ $('goHere').onclick=function(){setTool('goto')};
  $('gravity').oninput=function(){options.gravity=+this.value;$('gravNum').textContent=this.value};$('speed').oninput=function(){options.speed=+this.value;$('speedNum').textContent=options.speed.toFixed(2)+'×'};$('bouncy').oninput=function(){options.bounce=+this.value/100;$('bounceNum').textContent=this.value+'%'};$('quality').onchange=function(){options.quality=this.value;setProfile();toast('Performance: '+profile)};
  $('save').onclick=saveLocal;$('load').onclick=loadLocal;$('export').onclick=exportWorld;$('import').onclick=function(){$('fileInput').click()};$('fileInput').onchange=function(){importFile(this.files[0]);this.value=''};$('undo').onclick=undo;$('reset').onclick=function(){newWorld('empty');toast('Blank world ready')};$('snapshot').onclick=screenshot;
  $('help').onclick=function(){modal(true)};$('closeModal').onclick=function(){modal(false)};$('startGame').onclick=function(){modal(false)};$('helpClose').onclick=function(){modal(false)};$('modalWrap').onclick=function(e){if(e.target===this)modal(false)};
