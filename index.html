@@ -790,6 +790,13 @@ function drawSelection(){var p=findPart(state.selected);if(p){ctx.beginPath();ct
 function draw(){ctx.clearRect(0,0,width,height);backdrop();ctx.save();ctx.translate(width/2-cam.x*cam.z,height/2-cam.y*cam.z);ctx.scale(cam.z,cam.z);
  if(challenge){var goal=Levels.levels[challenge.index].goal;ctx.fillStyle=challenge.won?'#70d6a8aa':'#84e8b577';ctx.strokeStyle='#239e71';ctx.lineWidth=4;ctx.fillRect(goal.x,goal.y,goal.w,goal.h);ctx.strokeRect(goal.x,goal.y,goal.w,goal.h);ctx.fillStyle='#146747';ctx.font='bold 18px system-ui';ctx.fillText('GOAL',goal.x+19,goal.y+30)}
  world.links.forEach(drawLink);world.parts.forEach(drawPart);
+ // Small optional destination markers cost no sprites or navigation mesh.
+ var shown=0;
+ world.groups.forEach(function(g){if(g.mode!=='go'||typeof g.targetX!=='number'||shown>=limits[profile].agents)return;shown++;
+  var dest=g.targetX,y=FLOOR-7;ctx.strokeStyle='#168675';ctx.fillStyle='#168675';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(dest,y-14,11,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(dest,y-11);ctx.lineTo(dest,y+1);ctx.moveTo(dest-5,y-3);ctx.lineTo(dest,y+2);ctx.lineTo(dest+5,y-3);ctx.stroke();
+ });
  // Names are painted on Canvas (never HTML), limited by the active performance profile.
  if(world.aiEnabled){var names=0;for(var i=0;i<world.groups.length&&names<limits[profile].agents;i++){var g=world.groups[i],head=g.ai?findPart(g.head):null;if(!head)continue;names++;ctx.font='bold 13px system-ui';ctx.textAlign='center';ctx.fillStyle='#152c36';ctx.fillText(g.name,head.x,head.y-26);ctx.fillStyle=g.intent==='avoid'?'#bf574f':'#277d70';ctx.font='10px system-ui';ctx.fillText(g.intent||g.mode,head.x,head.y-14)}ctx.textAlign='start'}
  drawSelection();ctx.restore();/* Pause state is already shown in the toolbar and world chip. No canvas badge may cover controls. */}
