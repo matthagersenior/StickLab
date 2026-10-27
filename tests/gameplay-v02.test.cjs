@@ -497,3 +497,18 @@ test('applying Help releases direct control and resumes a paused world for auton
  assert.equal(api.getState().paused,false,'Help starts physics to make an observable action');
  assert.equal(api.getResidents()[0].mode,'help');
 });
+
+test('fall-recovery effort lifts head and chest back toward standing under actual constraints',()=>{
+ const {api}=engine(true);api.createWorld('empty');api.spawnResident(820,850);
+ const world=api.getWorld(),g=world.groups[0],get=id=>world.parts.find(p=>p.id===id),hip=get(g.hip);
+ for(const i of [0,2]){const p=get(g.nodes[i]);p.y=hip.y+8;p.py=p.y}
+ api.importScene({format:'StickLab',version:4,world});
+ let uprightFrames=0,highest=0;
+ for(let i=0;i<130;i++){
+  api.step();const w=api.getWorld(),group=w.groups[0],h=w.parts.find(p=>p.id===group.head),pelvis=w.parts.find(p=>p.id===group.hip);
+  const rise=pelvis.y-h.y;highest=Math.max(highest,rise);
+  if(i>70&&rise>35)uprightFrames++;
+ }
+ assert.ok(highest>45,'recovery must actually lift the head away from pelvis, measured '+highest);
+ assert.ok(uprightFrames>=5,'recovery must achieve some upright frames, measured '+uprightFrames);
+});
