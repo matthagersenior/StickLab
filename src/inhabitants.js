@@ -1,7 +1,7 @@
 /* StickLab v0.4: deterministic, slow-tick, offline stick-figure decisions.
    No DOM, no timers, no random calls, no direct modification of physics bodies. */
 (function(root){'use strict';
-var personalities=['curious','cautious','helpful'],modes=['wander','help','rest'];
+var personalities=['curious','cautious','helpful'],modes=['wander','help','rest','go'];
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
 function decide(group,hip,nearby,goal,tick,floor){
@@ -26,7 +26,8 @@ function decide(group,hip,nearby,goal,tick,floor){
   if(p.kind==='wheel'&&!p.motor&&Math.abs(dx)<75&&Math.abs(dy)<125&&!wheel)wheel=p;
  }
  if(hazard){result.intent='avoid';result.direction=hazard.x>=hip.x?-1:1;memory.hazards=Math.min(99,memory.hazards+1);memory.lastHazardX=hazard.x;return result}
- if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<28?0:(delta>0?1:-1);
+ if(mode==='go'&&typeof group.targetX==='number'&&isFinite(group.targetX)){var distance=group.targetX-hip.x;result.intent=Math.abs(distance)<=26?'arrived':'go';result.direction=Math.abs(distance)<=26?0:(distance>0?1:-1)}
+ else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<28?0:(delta>0?1:-1);
    if(wheel&&personality==='helpful'){result.activateMotorId=wheel.id;memory.interactions=Math.min(99,memory.interactions+1)}
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}

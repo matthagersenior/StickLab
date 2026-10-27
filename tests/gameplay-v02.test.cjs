@@ -6,7 +6,7 @@ function engine(pointer){
  function el(id){if(!nodes[id])nodes[id]={id,textContent:'',value:'1',innerHTML:'',style:{},dataset:{},classList:{add:noop,remove:noop,toggle:noop},listeners:{},addEventListener:function(name,fn){this.listeners[name]=fn},setAttribute:noop,getBoundingClientRect(){return{left:0,top:0,width:1000,height:700}},getContext(){return new Proxy({setTransform:noop},{get(o,k){return o[k]||noop},set(o,k,v){o[k]=v;return true}})}};return nodes[id]}
  const holdButtons=['left','jump','right'].map(function(name){var btn=el('hold-'+name);btn.dataset.hold=name;return btn});
  const storage={};const context={document:{getElementById:el,querySelectorAll(selector){return selector==='[data-hold]'?holdButtons:[]}},navigator:{hardwareConcurrency:2},localStorage:{getItem:k=>storage[k]||null,setItem:(k,v)=>storage[k]=v},window:{innerWidth:1000,devicePixelRatio:1,addEventListener:noop,PointerEvent:!!pointer},requestAnimationFrame:noop,setTimeout:()=>1,clearTimeout:noop,Math,Date,JSON,Number,Array,Object,FileReader:function(){},isFinite,console};
- vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/inhabitants.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
+ vm.createContext(context);for(const file of ['src/core.js','src/levels.js','src/machines.js','src/inhabitants.js','src/locomotion.js','src/game.js'])vm.runInContext(fs.readFileSync(path.join(dir,file),'utf8'),context);
  return{api:context.window.StickLab,nodes,storage};
 }
 test('v1 preset ragdolls survive save to slot 2 and reload',()=>{
@@ -337,4 +337,32 @@ test('invalid game type is rejected without destroying current sandbox',()=>{
  const {api}=engine(),original=JSON.stringify(api.getWorld());
  assert.equal(api.selectGameMode('nonexistent'),false);
  assert.equal(JSON.stringify(api.getWorld()),original);
+});
+
+test('Go Here chooses a destination with one touch and then lets the resident walk independently',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(700,850),resident=api.getResidents()[0];
+ assert.ok(api.selectResident(resident.id));
+ assert.equal(nodes.goHere.disabled,false);
+ nodes.goHere.onclick();
+ assert.equal(api.getState().tool,'goto');
+ tapAtWorld(api,nodes,1000,850,35);
+ assert.equal(api.getState().tool,'grab');
+ assert.equal(api.getState().selected,null,'resident must be released to let AI drive');
+ const walking=api.getResidents()[0];assert.equal(walking.mode,'go');assert.equal(walking.targetX,1000);
+ const before=api.getWorld().parts.find(p=>p.id===hip.id).x;
+ for(let n=0;n<170;n++)api.step();
+ const after=api.getWorld().parts.find(p=>p.id===hip.id).x;
+ assert.ok(after>before+5,'resident must advance under its own physics rather than requiring limb controls');
+});
+test('Go Here can animate a passive ragdoll and rejects invalid destinations',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const g=api.spawnResident(750,850).group; // a resident is also a full ragdoll
+ assert.equal(api.setResidentTarget(g,-5),false);
+ assert.equal(api.setResidentTarget(g,850),true);
+ assert.equal(api.getResidents()[0].targetX,850);
+ const normalized=api.getWorld();
+ api.importScene({format:'StickLab',version:4,world:normalized});
+ assert.equal(api.getResidents()[0].mode,'go');
+ assert.equal(api.getResidents()[0].targetX,850);
 });

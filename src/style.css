@@ -159,3 +159,9 @@
  .puzzle-picker-level .level-state{font-size:10px}
  #puzzlePickerStatus{margin:7px 0}
 }
+
+/* A sidebar animating out must never intercept a quick destination tap. */
+@media (max-width:690px), (max-width:1180px) and (pointer:coarse) {
+ .side:not(.open){pointer-events:none}
+ .side.open{pointer-events:auto}
+}

@@ -223,3 +223,35 @@ test('physics puzzle selection shows a usable level chooser even when sidebar is
   await ctx.close();
  }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
+
+test('Android touch Go Here command walks a figure without dragging its individual joints',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  await page.evaluate(()=>{window.StickLab.createWorld('empty');const hip=window.StickLab.spawnResident(760,850);window.StickLab.selectResident(hip.group)});
+  await page.locator('#openMenu').click();
+  assert.equal(await page.locator('#goHere').isEnabled(),true);
+  await page.locator('#goHere').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().tool),'goto');
+  const target=await page.evaluate(()=>{
+   const c=window.StickLab.getCamera(),r=document.querySelector('#canvas').getBoundingClientRect();
+   return{x:r.left+r.width/2+(990-c.x)*c.z,y:r.top+r.height/2+(850-c.y)*c.z};
+  });
+  const hit=await page.evaluate(p=>{var n=document.elementFromPoint(p.x,p.y);return {node:n&&n.tagName,id:n&&n.id,klass:n&&n.className,x:p.x,y:p.y,tool:window.StickLab.getState().tool}},target);
+  await page.touchscreen.tap(target.x,target.y);
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null,'Tap should issue destination command: '+JSON.stringify(hit));
+  assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].mode),'go');
+  assert.ok(Math.abs((await page.evaluate(()=>window.StickLab.getResidents()[0].targetX))-990)<.5,'camera transform should resolve a screen tap to the requested point');
+  const delta=await page.evaluate(()=>{
+   const w=window.StickLab.getWorld(),hip=w.parts.find(p=>p.id===w.groups[0].hip),before=hip.x;
+   for(let n=0;n<130;n++)window.StickLab.step();
+   return window.StickLab.getWorld().parts.find(p=>p.id===w.groups[0].hip).x-before;
+  });
+  assert.ok(delta>4,'Go Here must propel the simulated ragdoll using physics, measured '+delta);
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});

@@ -53,11 +53,12 @@ function normalizeScene(input){
   var visited={};g.nodes.forEach(function(id){if(visited[id]||!ids[id]||ids[id].group!==g.id)throw Error('Invalid ragdoll node');visited[id]=1});
   if(g.ai!==undefined&&typeof g.ai!=='boolean')throw Error('Invalid agent activation');
   if(g.name!==undefined&&(typeof g.name!=='string'||g.name.length>32||!/^[A-Za-z][A-Za-z0-9 _-]*$/.test(g.name)))throw Error('Invalid agent name');
-  if(g.mode!==undefined&&['wander','help','rest'].indexOf(g.mode)<0)throw Error('Invalid agent behavior');
+  if(g.mode!==undefined&&['wander','help','rest','go'].indexOf(g.mode)<0)throw Error('Invalid agent behavior');
   if(g.personality!==undefined&&['curious','cautious','helpful'].indexOf(g.personality)<0)throw Error('Invalid personality');
+  if(g.targetX!==undefined&&g.targetX!==null&&(!finite(g.targetX)||g.targetX<0||g.targetX>2200))throw Error('Invalid movement target');
   var mem=g.memory||{hazards:0,lastHazardX:null,interactions:0};
   if(typeof mem!=='object'||Array.isArray(mem)||!(finite(mem.hazards)&&Math.floor(mem.hazards)===mem.hazards)||mem.hazards<0||mem.hazards>99||!(finite(mem.interactions)&&Math.floor(mem.interactions)===mem.interactions)||mem.interactions<0||mem.interactions>99||(mem.lastHazardX!==null&&(!finite(mem.lastHazardX)||Math.abs(mem.lastHazardX)>5000)))throw Error('Invalid agent memory');
-  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
+  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',targetX:g.targetX===undefined?null:g.targetX,memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
 
  });
  parts.forEach(function(p){if(p.group&&!groups.some(function(g){return g.id===p.group&&g.nodes.indexOf(p.id)>=0}))throw Error('Orphan ragdoll body')});
