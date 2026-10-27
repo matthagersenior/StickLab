@@ -20,12 +20,32 @@ function nudgeX(p,amount){if(!p||p.fixed)return;p.px-=clamp(amount,1.2)}
 function nudgeY(p,amount){if(!p||p.fixed)return;p.py+=clamp(amount,8)}
 function step(group,parts,command,terrain,floor,tick){
  command=command||{};parts=parts||{};
- var hip=parts.hip,chest=parts.chest,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
- var status={grounded:false,stepping:false,jumped:false};
+ var hip=parts.hip,chest=parts.chest,head=parts.head,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
+ var status={grounded:false,stepping:false,jumped:false,recovering:false,pushed:false};
  if(!hip||hip.fixed||!feet[0]||!feet[1])return status;
  var left=isSupported(feet[0],terrain,floor),right=isSupported(feet[1],terrain,floor);
+ // Fallen residents can get back up from knees, hands or head contact too.
+ var braced=isSupported(parts.lk,terrain,floor)||isSupported(parts.rk,terrain,floor)||isSupported(parts.lh,terrain,floor)||isSupported(parts.rh,terrain,floor);
+ var toppled=!!(chest&&head&&(chest.y>hip.y-13||head.y>hip.y-36));
  status.grounded=left||right;
+ var supported=status.grounded||braced||(toppled&&isSupported(head,terrain,floor));
  var direction=command.direction>0?1:command.direction<0?-1:0;
+ if(!supported)return status;
+ if(toppled){
+  status.recovering=true;
+  group.motionState='getting-up';
+  var recoveryTick=finite(group.lastRecoveryTick)?group.lastRecoveryTick:-1000;
+  if((tick||0)-recoveryTick>=8){
+   // Joint velocity corrections only; constraints and collisions do the actual lifting.
+   nudgeY(chest,4.4);nudgeY(head,3.2);nudgeY(hip,1.2);
+   nudgeY(parts.ls,1.5);nudgeY(parts.rs,1.5);
+   nudgeX(chest,clamp(hip.x-chest.x,10)*.075);
+   nudgeX(head,clamp(hip.x-head.x,13)*.075);
+   group.lastRecoveryTick=tick||0;
+  }
+  return status;
+ }
+ group.motionState=direction?'walking':'standing';
  if(!status.grounded)return status;
  var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3;
  nudgeX(hip,clamp((rate-forward)*.14,.34));
@@ -49,6 +69,20 @@ function step(group,parts,command,terrain,floor,tick){
   nudgeX(hip,clamp(-forward*.12,.35));
  }
  var last=finite(group.lastJumpTick)?group.lastJumpTick:-1000;
+ // A grounded helper nudges a nearby free object, transferring momentum by contact.
+ var target=null,near=terrain||[];
+ if(direction&&finite(command.pushTargetId)){
+  for(var t=0;t<near.length&&t<32;t++){if(near[t]&&near[t].id===command.pushTargetId){target=near[t];break}}
+ }
+ var lastPush=finite(group.lastPushTick)?group.lastPushTick:-1000;
+ if(target&&!target.fixed&&(target.kind==='ball'||target.kind==='wheel'||target.kind==='box')&&
+    Math.abs(target.x-hip.x)<=(target.r||Math.max(target.w||0,target.h||0)/2||20)+44&&
+    Math.abs(target.y-hip.y)<=(target.r||Math.max(target.w||0,target.h||0)/2||20)+38&&
+    (target.x-hip.x)*direction>=-8&&(tick||0)-lastPush>=18){
+   nudgeX(target,direction*1.2);nudgeX(hip,-direction*.14);
+   nudgeX(chest,-direction*.1);
+   status.pushed=true;group.lastPushTick=tick||0;group.motionState='pushing';
+ }
  if(command.jump&&tick-last>=48){
   // Reaction is an impulse to body velocities, not a position teleport.
   nudgeY(hip,6.7);nudgeY(chest,5.6);

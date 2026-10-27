@@ -5,7 +5,7 @@ var personalities=['curious','cautious','helpful'],modes=['wander','help','rest'
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
 function decide(group,hip,nearby,goal,tick,floor){
- var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,memory:memory};
+ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,pushTargetId:null,memory:memory};
  if(!group||!group.ai||group.mode==='rest'||!hip)return result;
  nearby=nearby||[];floor=floor||930;
  var mode=modes.indexOf(group.mode)<0?'wander':group.mode;
@@ -27,7 +27,9 @@ function decide(group,hip,nearby,goal,tick,floor){
  }
  if(hazard){result.intent='avoid';result.direction=hazard.x>=hip.x?-1:1;memory.hazards=Math.min(99,memory.hazards+1);memory.lastHazardX=hazard.x;return result}
  if(mode==='go'&&typeof group.targetX==='number'&&isFinite(group.targetX)){var distance=group.targetX-hip.x;result.intent=Math.abs(distance)<=26?'arrived':'go';result.direction=Math.abs(distance)<=26?0:(distance>0?1:-1)}
- else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<28?0:(delta>0?1:-1);
+ else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<18?0:(delta>0?1:-1);
+   // Help mode can deliberately push a loose ball once it is in physical reach.
+   if(goal.kind==='ball'&&!goal.fixed&&Math.abs(delta)<80&&Math.abs(goal.y-hip.y)<75)result.pushTargetId=goal.id;
    if(wheel&&personality==='helpful'){result.activateMotorId=wheel.id;memory.interactions=Math.min(99,memory.interactions+1)}
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}

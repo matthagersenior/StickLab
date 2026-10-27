@@ -1,4 +1,8 @@
-# StickLab v0.5.4 — Free Physics Figures
+# StickLab v0.5.5 — Getting Up and Helping with Physics
+
+Stick figures can now **attempt to recover after a fall using bounded physical impulses**, and autonomous residents set to **Help · push nearby balls** can move loose objects through actual contact forces. Applying a behavior releases manual control and resumes a paused simulation automatically. This stays low-cost and offline; there are no new external dependencies. [v0.5.5 release notes](docs/releases/v0.5.5-recovery-and-help.md).
+
+
 
 The default Playground no longer leaves a stick figure hanging from its head. Engineering Lab now starts with a walker and a physical ragdoll, not machines alone. **Physics** adds a freely jointed figure, **Walk** automatically unhooks external ropes before traveling, and **✂ Unhook** releases existing connections without deleting the figure or its bones. [v0.5.4 release notes](docs/releases/v0.5.4-physics-figures.md).
 

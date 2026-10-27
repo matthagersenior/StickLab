@@ -459,3 +459,56 @@ test('Unhook action releases a legacy hanging figure for sandbox experiments and
  nodes.undo.onclick();
  assert.equal(api.getWorld().links.filter(l=>l.type==='rope').length,1,'Undo restores external connection');
 });
+
+test('a toppled autonomous resident attempts recovery inside the real world simulator',()=>{
+ const {api}=engine(true);api.createWorld('empty');const hip=api.spawnResident(790,850);
+ const w=api.getWorld(),g=w.groups[0],body=w.parts.filter(p=>p.group===g.id),byId=id=>body.find(p=>p.id===id);
+ const chest=byId(g.nodes[2]),head=byId(g.nodes[0]),pelvis=byId(g.hip);
+ chest.y=pelvis.y+8;chest.py=chest.y;
+ head.y=pelvis.y+12;head.py=head.y;
+ api.importScene({format:'StickLab',version:4,world:w});
+ const before=api.getWorld().parts.find(p=>p.id===g.nodes[2]);
+ api.step();
+ const resident=api.getResidents().find(x=>x.id===g.id),after=api.getWorld().parts.find(p=>p.id===g.nodes[2]);
+ assert.equal(resident.motionState,'getting-up','AI state should show recovery effort rather than pretending to walk');
+ assert.ok(Number.isFinite(after.y)&&Number.isFinite(after.py),'recovery keeps finite physical coordinates');
+ assert.ok(after.y<before.y+35,'get-up should not teleport character through the floor');
+});
+test('Help mode nudges a physically reachable ball in the full simulator',()=>{
+ const {api}=engine();api.createWorld('empty');
+ const hip=api.spawnResident(800,854),id=hip.group;
+ const w=api.getWorld(),ballId=w.next;w.parts.push({id:ballId,kind:'ball',x:840,y:900,px:840,py:900,r:22,fixed:false});w.next++;
+ api.importScene({format:'StickLab',version:4,world:w});
+ assert.equal(api.setResidentMode(id,'help'),true);
+ for(let i=0;i<15;i++)api.step();
+ const after=api.getWorld().parts.find(p=>p.id===ballId);
+ const resident=api.getResidents().find(g=>g.id===id);
+ assert.ok(after.x>840,'contact must push ball forward, measured '+after.x);
+ assert.ok(resident.motionState==='pushing'||resident.motionState==='walking','AI should be actuating nearby physics rather than teleporting it');
+});
+
+test('applying Help releases direct control and resumes a paused world for autonomous physics',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(790,854);
+ assert.equal(api.selectResident(hip.group),true);
+ nodes.pause.onclick();assert.equal(api.getState().paused,true);
+ nodes.residentMode.value='help';nodes.applyResidentMode.onclick();
+ assert.equal(api.getState().selected,null,'Help must not remain blocked by direct selection');
+ assert.equal(api.getState().paused,false,'Help starts physics to make an observable action');
+ assert.equal(api.getResidents()[0].mode,'help');
+});
+
+test('fall-recovery effort lifts head and chest back toward standing under actual constraints',()=>{
+ const {api}=engine(true);api.createWorld('empty');api.spawnResident(820,850);
+ const world=api.getWorld(),g=world.groups[0],get=id=>world.parts.find(p=>p.id===id),hip=get(g.hip);
+ for(const i of [0,2]){const p=get(g.nodes[i]);p.y=hip.y+8;p.py=p.y}
+ api.importScene({format:'StickLab',version:4,world});
+ let uprightFrames=0,highest=0;
+ for(let i=0;i<130;i++){
+  api.step();const w=api.getWorld(),group=w.groups[0],h=w.parts.find(p=>p.id===group.head),pelvis=w.parts.find(p=>p.id===group.hip);
+  const rise=pelvis.y-h.y;highest=Math.max(highest,rise);
+  if(i>70&&rise>35)uprightFrames++;
+ }
+ assert.ok(highest>45,'recovery must actually lift the head away from pelvis, measured '+highest);
+ assert.ok(uprightFrames>=5,'recovery must achieve some upright frames, measured '+uprightFrames);
+});
