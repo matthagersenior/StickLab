@@ -37,7 +37,7 @@ test('grounded jump is a one-time vertical impulse, limited by simulation ticks'
 });
 test('standing on a fixed platform permits movement, but floating far above it does not',()=>{
  const {group,parts}=actor();Object.values(parts).forEach(p=>{p.y-=130;p.py=p.y});
- const terrain=[{kind:'box',fixed:true,x:500,y:860,w:180,h:20}];
+ const terrain=[{kind:'box',fixed:true,x:500,y:810,w:180,h:20}];
  const grounded=Locomotion.step(group,parts,{direction:1},terrain,930,2);
  assert.equal(grounded.grounded,true);
  Object.values(parts).forEach(p=>{p.y-=100;p.py=p.y;p.px=p.x});
