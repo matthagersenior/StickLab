@@ -293,3 +293,31 @@ test('phone screenshot scenario: Walk is visible despite paused Physics Puzzles 
   await ctx.close();
  }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
+
+test('Physics figures appear in Engineering and Playground, with visible Unhook on phones', {skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  const playground=await page.evaluate(()=>window.StickLab.getWorld());
+  assert.ok(playground.groups.length>=2);
+  assert.equal(playground.links.filter(l=>['rope','spring','hinge'].includes(l.type)&&playground.groups.some(g=>g.nodes.includes(l.a)||g.nodes.includes(l.b))).length,0);
+  assert.equal(await page.locator('.mobiletools [data-tool="figure"]').isVisible(),true);
+  assert.equal(await page.locator('#unhookMobile').isVisible(),true);
+  await page.locator('#challengeAction').click();await page.locator('[data-game="engineering"]').click();
+  const engineering=await page.evaluate(()=>window.StickLab.getWorld());
+  assert.ok(engineering.groups.some(g=>g.ai),'Engineering must have a walker');
+  assert.ok(engineering.groups.some(g=>!g.ai),'Engineering must include a free ragdoll');
+  await page.locator('.mobiletools [data-tool="goto"]').click();
+  const target=await page.evaluate(()=>{
+    const c=window.StickLab.getCamera(),r=document.querySelector('#canvas').getBoundingClientRect();
+    return{x:r.left+r.width/2+(950-c.x)*c.z,y:r.top+r.height/2+(800-c.y)*c.z};
+  });
+  await page.touchscreen.tap(target.x,target.y);
+  assert.ok(await page.evaluate(()=>window.StickLab.getResidents().some(g=>g.mode==='go')),'a prebuilt figure can receive a physics Walk goal');
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
+});
