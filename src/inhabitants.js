@@ -77,7 +77,7 @@ function decide(group,hip,nearby,goal,tick,floor){
   }else if(barrier&&(barrier.hop||mode==='help')){result.jump=true}
   else if(barrier&&!barrier.hop&&mode==='wander'){result.direction=-result.direction;result.intent='turn'}
  }
- if(mode==='go'&&result.intent==='go'){
+ if(mode==='go'&&(result.intent==='go'||result.intent==='hop')){
   var recovery=stalledTravel(group,hip,tick||0);
   if(recovery==='retry'){result.jump=true;result.intent='retry'}
   if(recovery==='blocked'){result.direction=0;result.jump=false;result.intent='blocked'}
