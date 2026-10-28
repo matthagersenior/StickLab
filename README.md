@@ -1,4 +1,8 @@
-# StickLab v0.5.5 — Getting Up and Helping with Physics
+# StickLab v0.5.6 — Smarter Go Here Navigation
+
+**Walk around the world with better feedback:** autonomous residents now try bounded physical hops over small barriers, stop at walls too high to clear, and retry a stalled route a limited number of times. If movement is blocked, the on-screen hint explains why and you can set another destination with **📍 Walk**. No teleports, external libraries or navigation mesh; existing low-end settings and collision physics remain. [v0.5.6 release notes](docs/releases/v0.5.6-navigation.md).
+
+
 
 Stick figures can now **attempt to recover after a fall using bounded physical impulses**, and autonomous residents set to **Help · push nearby balls** can move loose objects through actual contact forces. Applying a behavior releases manual control and resumes a paused simulation automatically. This stays low-cost and offline; there are no new external dependencies. [v0.5.5 release notes](docs/releases/v0.5.5-recovery-and-help.md).
 

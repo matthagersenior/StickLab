@@ -354,3 +354,29 @@ test('mobile Help behavior releases control and pushes a ball in the simulated w
   await ctx.close();
  }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
+
+test('Android-size Go Here visibly reports a blocked wall and accepts a new destination',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const ctx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await ctx.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  const id=await page.evaluate(()=>{
+   const api=window.StickLab;api.createWorld('empty');
+   const hip=api.spawnResident(800,854),w=api.getWorld(),wallId=w.next;
+   w.parts.push({id:wallId,kind:'box',x:855,y:855,px:855,py:855,w:38,h:150,fixed:true});
+   w.next++;api.importScene({format:'StickLab',version:4,world:w});
+   return hip.group;
+  });
+  await page.evaluate(id=>{const api=window.StickLab;api.setResidentTarget(id,1100);api.step()},id);
+  assert.match(await page.locator('#controlHint').textContent(),/blocked/i);
+  const box=await page.locator('#controlHint').boundingBox();
+  assert.ok(box&&box.x>=0&&box.y>=0&&box.x+box.width<=390,'feedback stays inside the phone viewport');
+  await page.evaluate(id=>{const api=window.StickLab;api.setResidentTarget(id,650);api.step()},id);
+  assert.equal(await page.evaluate(()=>window.StickLab.getResidents()[0].mode),'go');
+  assert.doesNotMatch(await page.locator('#controlHint').textContent(),/blocked/i);
+  assert.deepEqual(errors,[]);
+  await ctx.close();
+ }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});

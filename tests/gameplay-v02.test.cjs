@@ -512,3 +512,28 @@ test('fall-recovery effort lifts head and chest back toward standing under actua
  assert.ok(highest>45,'recovery must actually lift the head away from pelvis, measured '+highest);
  assert.ok(uprightFrames>=5,'recovery must achieve some upright frames, measured '+uprightFrames);
 });
+
+test('real Go Here actor attempts to jump a low fixed obstacle in the physics world',()=>{
+ const {api}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(800,854),w=api.getWorld(),id=w.next;
+ w.parts.push({id,kind:'box',x:855,y:906,px:855,py:906,w:38,h:48,fixed:true});w.next++;
+ api.importScene({format:'StickLab',version:4,world:w});
+ assert.equal(api.setResidentTarget(hip.group,1100),true);
+ api.step();
+ const g=api.getWorld().groups[0];
+ assert.equal(g.intent,'hop','robot should perceive low hurdle');
+ assert.ok(Number.isFinite(g.lastJumpTick),'jump actuator should fire when supported');
+});
+test('real Go Here actor stops at a tall static wall and keeps its requested goal',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');
+ const hip=api.spawnResident(800,854),w=api.getWorld(),id=w.next;
+ w.parts.push({id,kind:'box',x:855,y:855,px:855,py:855,w:38,h:150,fixed:true});w.next++;
+ api.importScene({format:'StickLab',version:4,world:w});
+ assert.equal(api.setResidentTarget(hip.group,1100),true);
+ api.step();
+ const g=api.getWorld().groups[0];
+ assert.equal(g.intent,'blocked');
+ assert.equal(g.targetX,1100);
+ assert.equal(g.lastJumpTick,undefined,'do not jump futilely into tall wall');
+ assert.match(nodes.controlHint.textContent,/blocked|wall/i,'HUD should explain why the resident stopped');
+});

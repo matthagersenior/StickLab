@@ -195,7 +195,7 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.5</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.6</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
@@ -355,6 +355,41 @@ if(root)root.StickLabMachines=api;
 var personalities=['curious','cautious','helpful'],modes=['wander','help','rest','go'];
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
+// Very small local collision-aware planner. This is not a global pathfinder.
+function routeBarrier(hip,nearby,direction,floor){
+ if(!direction)return null;
+ var nearest=null;
+ for(var i=0;i<nearby.length&&i<32;i++){
+  var box=nearby[i];
+  if(!box||box.kind!=='box'||!box.fixed||!(box.w>0)||!(box.h>0)||Math.abs(box.angle||0)>.1)continue;
+  var front=(direction>0?box.x-box.w/2-hip.x:hip.x-(box.x+box.w/2));
+  var top=box.y-box.h/2,bottom=box.y+box.h/2;
+  if(front< -22||front>65||bottom<hip.y+22||top>floor-10)continue;
+  // A ground-level knee-height box is hopable, not a 150px wall or overhead platform.
+  var hop=top>=hip.y+8&&floor-top<=72;
+  if(!nearest||front<nearest.distance)nearest={distance:front,hop:hop};
+ }
+ return nearest;
+}
+function stalledTravel(group,hip,tick){
+ var nav=group.navigation,goal=group.targetX;
+ if(!nav||nav.target!==goal||tick<nav.tick){
+  group.navigation={target:goal,x:hip.x,tick:tick,stalled:0,retries:0,blocked:false};
+  return null;
+ }
+ if(tick-nav.tick<8)return nav.blocked?'blocked':null;
+ var progress=Math.abs(hip.x-nav.x);
+ nav.x=hip.x;nav.tick=tick;
+ if(progress>=6){nav.stalled=0;nav.retries=0;nav.blocked=false;return null}
+ nav.stalled++;
+ if(nav.blocked)return 'blocked';
+ if(nav.stalled>=2){
+  nav.stalled=0;
+  if(nav.retries<2){nav.retries++;return 'retry'}
+  nav.blocked=true;return 'blocked';
+ }
+ return null;
+}
 function decide(group,hip,nearby,goal,tick,floor){
  var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,pushTargetId:null,memory:memory};
  if(!group||!group.ai||group.mode==='rest'||!hip)return result;
@@ -384,7 +419,20 @@ function decide(group,hip,nearby,goal,tick,floor){
    if(wheel&&personality==='helpful'){result.activateMotorId=wheel.id;memory.interactions=Math.min(99,memory.interactions+1)}
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}
- if(obstacle&&result.direction&&(obstacle.x>=hip.x?1:-1)===result.direction&&hip.y>floor-140)result.jump=true;
+ // Local decisions are independent of device performance, always bounded to 32 candidate parts.
+ if(result.direction){
+  var barrier=routeBarrier(hip,nearby,result.direction,floor);
+  if(barrier&&mode==='go'){
+   if(barrier.hop){result.jump=true;result.intent='hop'}
+   else{result.direction=0;result.jump=false;result.intent='blocked'}
+  }else if(barrier&&(barrier.hop||mode==='help')){result.jump=true}
+  else if(barrier&&!barrier.hop&&mode==='wander'){result.direction=-result.direction;result.intent='turn'}
+ }
+ if(mode==='go'&&(result.intent==='go'||result.intent==='hop')){
+  var recovery=stalledTravel(group,hip,tick||0);
+  if(recovery==='retry'){result.jump=true;result.intent='retry'}
+  if(recovery==='blocked'){result.direction=0;result.jump=false;result.intent='blocked'}
+ }else if(mode==='go'&&result.intent==='arrived'){group.navigation=null}
  if(hip.x<85)result.direction=1;else if(hip.x>2080)result.direction=-1;
  return result;
 }
@@ -544,7 +592,22 @@ function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
-function updateControlHint(){var label=$('controlHint');if(!label)return;var g=selectedResident();label.textContent=state.tool==='goto'?'📍 Tap where '+(g?g.name:'the figure')+' should walk':g?'Controlling: '+(g.name||'Figure'):'Arrows select a figure'}
+function updateControlHint(){
+ var label=$('controlHint');if(!label)return;
+ var selected=selectedResident(),walker=null;
+ for(var i=0;i<world.groups.length;i++){
+  if(world.groups[i].ai&&world.groups[i].mode==='go'){walker=world.groups[i];break}
+ }
+ if(state.tool==='goto')label.textContent='📍 Tap where '+(selected?selected.name:'the figure')+' should walk';
+ else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
+ else if(walker){
+  var name=walker.name||'Figure';
+  label.textContent=walker.intent==='blocked'?'⚠ '+name+' blocked · move the wall or choose another destination':
+   walker.intent==='hop'?'↑ '+name+' hopping over a low obstacle':
+   walker.intent==='retry'?'↻ '+name+' retrying movement':
+   '📍 '+name+' walking to destination';
+ }else label.textContent='Arrows select a figure';
+}
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
@@ -559,7 +622,7 @@ function updateResidents(){
 function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
 function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
 function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
-function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.brain=null;updateResidents();return true}
+function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.brain=null;updateResidents();return true}
 function releaseFigureConnections(g){
  if(!g)return 0;
  var ids=g.nodes;
@@ -586,7 +649,7 @@ function setResidentTarget(id,x){
  if(!g||typeof x!=='number'||!isFinite(x)||x<0||x>W)return false;
  // A deliberate walk command unhooks external suspension ropes; preserve the figure's bones.
  releaseFigureConnections(g);
- g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.intent='go';
+ g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.navigation=null;g.intent='go';
  // Choosing Walk is an explicit request to animate; never leave it silently paused.
  world.aiEnabled=true;state.paused=false;updatePause();
  state.selected=null;state.drag=null;updateResidents();
@@ -825,8 +888,13 @@ function residentInput(){
     if(challenge&&!challenge.won)goal=findPart(challenge.targetId);
     else{for(var b=0;b<nearby.length;b++)if(nearby[b].kind==='ball'&&!nearby[b].fixed&&nearby[b].r>12){goal=nearby[b];break}}
    }
+   var previousIntent=g.intent;
    g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR);
    g.intent=g.brain.intent;
+   if(g.mode==='go'&&g.intent!==previousIntent){
+    updateControlHint();
+    if(g.intent==='blocked')toast((g.name||'Figure')+' is blocked · try a new route or move the obstacle');
+   }
    g.memory=g.brain.memory;
    if(g.brain.activateMotorId){var motor=findPart(g.brain.activateMotorId);if(motor&&motor.kind==='wheel'&&!motor.motor){motor.motor=true;motor.motorDirection=g.brain.direction||1}}
   }
