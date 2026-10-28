@@ -56,3 +56,13 @@ test('Stuck monitor resets when the figure makes forward progress or receives a 
  assert.equal(reversed.direction,-1);
  assert.equal(reversed.intent,'go');
 });
+
+test('an unpassable low hurdle stops repeated hopping after bounded recovery attempts',()=>{
+ const actor=walker(),short=obstacle(555,906,48);
+ let last;
+ for(let tick=0;tick<=90;tick+=10)last=Brain.decide(actor,hip(),[short],null,tick,930);
+ assert.equal(last.intent,'blocked','must not hop forever at an obstacle that does not yield');
+ assert.equal(last.direction,0);
+ assert.equal(last.jump,false);
+ assert.equal(actor.targetX,900);
+});
