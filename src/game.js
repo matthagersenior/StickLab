@@ -52,7 +52,22 @@ function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].
 function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
-function updateControlHint(){var label=$('controlHint');if(!label)return;var g=selectedResident();label.textContent=state.tool==='goto'?'📍 Tap where '+(g?g.name:'the figure')+' should walk':g?'Controlling: '+(g.name||'Figure'):'Arrows select a figure'}
+function updateControlHint(){
+ var label=$('controlHint');if(!label)return;
+ var selected=selectedResident(),walker=null;
+ for(var i=0;i<world.groups.length;i++){
+  if(world.groups[i].ai&&world.groups[i].mode==='go'){walker=world.groups[i];break}
+ }
+ if(state.tool==='goto')label.textContent='📍 Tap where '+(selected?selected.name:'the figure')+' should walk';
+ else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
+ else if(walker){
+  var name=walker.name||'Figure';
+  label.textContent=walker.intent==='blocked'?'⚠ '+name+' blocked · move the wall or choose another destination':
+   walker.intent==='hop'?'↑ '+name+' hopping over a low obstacle':
+   walker.intent==='retry'?'↻ '+name+' retrying movement':
+   '📍 '+name+' walking to destination';
+ }else label.textContent='Arrows select a figure';
+}
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
@@ -67,7 +82,7 @@ function updateResidents(){
 function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
 function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
 function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
-function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.brain=null;updateResidents();return true}
+function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.brain=null;updateResidents();return true}
 function releaseFigureConnections(g){
  if(!g)return 0;
  var ids=g.nodes;
@@ -94,7 +109,7 @@ function setResidentTarget(id,x){
  if(!g||typeof x!=='number'||!isFinite(x)||x<0||x>W)return false;
  // A deliberate walk command unhooks external suspension ropes; preserve the figure's bones.
  releaseFigureConnections(g);
- g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.intent='go';
+ g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.navigation=null;g.intent='go';
  // Choosing Walk is an explicit request to animate; never leave it silently paused.
  world.aiEnabled=true;state.paused=false;updatePause();
  state.selected=null;state.drag=null;updateResidents();
@@ -333,8 +348,13 @@ function residentInput(){
     if(challenge&&!challenge.won)goal=findPart(challenge.targetId);
     else{for(var b=0;b<nearby.length;b++)if(nearby[b].kind==='ball'&&!nearby[b].fixed&&nearby[b].r>12){goal=nearby[b];break}}
    }
+   var previousIntent=g.intent;
    g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR);
    g.intent=g.brain.intent;
+   if(g.mode==='go'&&g.intent!==previousIntent){
+    updateControlHint();
+    if(g.intent==='blocked')toast((g.name||'Figure')+' is blocked · try a new route or move the obstacle');
+   }
    g.memory=g.brain.memory;
    if(g.brain.activateMotorId){var motor=findPart(g.brain.activateMotorId);if(motor&&motor.kind==='wheel'&&!motor.motor){motor.motor=true;motor.motorDirection=g.brain.direction||1}}
   }
