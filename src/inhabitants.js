@@ -74,7 +74,7 @@ function decide(group,hip,nearby,goal,tick,floor){
   if(barrier&&mode==='go'){
    if(barrier.hop){result.jump=true;result.intent='hop'}
    else{result.direction=0;result.jump=false;result.intent='blocked'}
-  }else if(barrier&&barrier.hop){result.jump=true}
+  }else if(barrier&&(barrier.hop||mode==='help')){result.jump=true}
   else if(barrier&&!barrier.hop&&mode==='wander'){result.direction=-result.direction;result.intent='turn'}
  }
  if(mode==='go'&&result.intent==='go'){
