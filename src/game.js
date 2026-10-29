@@ -26,7 +26,7 @@ try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getI
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
 var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination on the playfield to send the nearest figure there. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination on the playfield to send the nearest figure there. Held objects travel with the resident; shared holders travel together. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
 function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
@@ -49,7 +49,7 @@ function undo(){if(!state.undo.length){toast('Nothing to undo yet');return}try{v
 function findPart(id){return partIndex[id]||null}
 function rebuildIndex(){partIndex={};for(var i=0;i<world.parts.length;i++)partIndex[world.parts[i].id]=world.parts[i]}
 function findGroup(id){for(var i=0;i<world.groups.length;i++)if(world.groups[i].id===id)return world.groups[i];return null}
-function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
+function erase(p){if(!p)return;pushHistory();var group=p.group,remove={};if(group){var g=findGroup(group);if(g){g.nodes.forEach(function(n){remove[n]=1});world.groups=world.groups.filter(function(v){return v.id!==group})}}else remove[p.id]=1;world.parts=world.parts.filter(function(v){return !remove[v.id]});world.groups.forEach(function(v){if(remove[v.graspIgnoreTargetId])v.graspIgnoreTargetId=null});rebuildIndex();world.links=world.links.filter(function(v){return !remove[v.a]&&!remove[v.b]});state.selected=null;state.linkStart=null;updateCounts();updateResidents()}
 function updateCounts(){$('objectCount').textContent=countEntities();$('fps').textContent=Math.round(state.fps);updateResidents()}
 function selectedResident(){var p=findPart(state.selected);return p&&p.group?findGroup(p.group):null}
 function updateControlHint(){
@@ -62,40 +62,111 @@ function updateControlHint(){
  else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
  else if(walker){
   var name=walker.name||'Figure';
-  label.textContent=walker.intent==='blocked'?'⚠ '+name+' blocked · move the wall or choose another destination':
+  label.textContent=walker.intent==='blocked'?'⚠ '+name+(helpingGraspTargetId(walker)?' carrying object':'')+' blocked · move the wall or choose another destination':
    walker.intent==='hop'?'↑ '+name+' hopping over a low obstacle':
    walker.intent==='retry'?'↻ '+name+' retrying movement':
-   '📍 '+name+' walking to destination';
+   helpingGraspTargetId(walker)?'📍 '+name+' carrying an object to destination':'📍 '+name+' walking to destination';
  }else label.textContent='Arrows select a figure';
+ var pad=$('controlpad');if(pad)pad.classList.toggle('hidden',!selected&&!walker);
 }
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
  $('aiEnabled').checked=world.aiEnabled;
- if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.motionState==='getting-up'?'Getting up':g.motionState==='pushing'?'Pushing nearby object':g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
+ if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.dropNoticeUntil>state.tick?'Just dropped an object':g.motionState==='getting-up'?'Getting up':g.motionState==='pushing'?'Pushing nearby object':g.motionState==='sharing'?'Sharing an object':g.motionState==='carrying'?'Carrying an object':g.motionState==='grasping'?'Holding an object':g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
  else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · '+Math.min(active,limits[profile].agents)+' thinking ('+profile+')':' · AI off')+(g?' · passive ragdoll selected':'');
  $('releaseResident').disabled=!g;
+ $('dropObject').disabled=!g||!helpingGraspLink(g);
  $('residentMode').disabled=!g||!g.ai;
  $('applyResidentMode').disabled=!g||!g.ai;
  $('goHere').disabled=false;
  updateControlHint();
 }
-function setLivingAI(on){world.aiEnabled=!!on;updateResidents();return world.aiEnabled}
-function releaseResident(){state.selected=null;state.drag=null;updateResidents()}
-function chooseResident(id){var g=findGroup(id);if(!g)return false;state.selected=g.hip;state.drag=null;updateResidents();return true}
-function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.brain=null;updateResidents();return true}
-function releaseFigureConnections(g){
+function setLivingAI(on){world.aiEnabled=!!on;if(!world.aiEnabled)world.groups.forEach(function(g){releaseHelpingGrasp(g);g.brain=null});updateResidents();return world.aiEnabled}
+function releaseResident(){var g=selectedResident();if(g)g.brain=null;state.selected=null;state.drag=null;updateResidents()}
+function chooseResident(id){var g=findGroup(id);if(!g)return false;g.brain=null;state.selected=g.hip;state.drag=null;updateResidents();return true}
+function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;if(mode!=='help')releaseHelpingGrasp(g);if(mode==='help')g.graspIgnoreTargetId=null;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.brain=null;updateResidents();return true}
+function releaseFigureConnections(g,preserveGrasp){
  if(!g)return 0;
  var ids=g.nodes;
  var removable=world.links.filter(function(l){
   if(['rope','spring','hinge'].indexOf(l.type)<0)return false;
+  if(preserveGrasp&&l.graspOwner===g.id)return false;
   var a=ids.indexOf(l.a)>=0,b=ids.indexOf(l.b)>=0;
   return a!==b; // Only outside connectors, never the skeleton or internal joints.
  });
  if(!removable.length)return 0;
+ if(removable.some(function(l){return l.graspOwner===g.id})){if(g.intent==='grasp')g.intent=g.mode;g.motionState='standing';g.brain=null}
  pushHistory();
  var remove={};removable.forEach(function(l){remove[l.id]=true});
  world.links=world.links.filter(function(l){return !remove[l.id]});
  updateCounts();return removable.length;
+}
+function helpingGraspLink(g){
+ if(!g)return null;
+ for(var i=0;i<world.links.length;i++)if(world.links[i].graspOwner===g.id)return world.links[i];
+ return null;
+}
+function helpingGraspTargetId(g){
+ var l=helpingGraspLink(g);if(!l)return null;
+ return g.nodes.indexOf(l.a)>=0?l.b:l.a;
+}
+function helpingGraspCount(targetId){
+ if(targetId==null)return 0;
+ var count=0;for(var i=0;i<world.links.length;i++){var l=world.links[i];if(l.graspOwner&&(l.a===targetId||l.b===targetId))count++}
+ return count;
+}
+function releaseHelpingGrasp(g,preserveBrain){
+ if(!g)return false;
+ var releasedTarget=helpingGraspTargetId(g);
+ var before=world.links.length;
+ world.links=world.links.filter(function(l){return l.graspOwner!==g.id});
+ if(world.links.length!==before){if(g.intent==='grasp')g.intent=g.mode;g.motionState='standing';if(!preserveBrain)g.brain=null;
+  for(var i=0;i<world.links.length;i++)if(world.links[i].graspOwner&&(world.links[i].a===releasedTarget||world.links[i].b===releasedTarget)){var teammate=findGroup(world.links[i].graspOwner);if(teammate&&teammate.motionState==='sharing')teammate.motionState='grasping'}
+  updateCounts()}
+ return world.links.length!==before;
+}
+function dropHelpingObject(g){
+ if(!g)return false;
+ var targetId=helpingGraspTargetId(g);if(targetId==null)return false;
+ g.graspIgnoreTargetId=targetId;g.dropNoticeUntil=state.tick+120;releaseHelpingGrasp(g);g.brain=null;
+ toast(g.name+' dropped the object');updateResidents();return true;
+}
+function maintainHelpingGrasp(g,command){
+ if(!g||!command)return false;
+ var existing=helpingGraspLink(g),targetId=existing?helpingGraspTargetId(g):null;
+ if(existing){
+  var held=findPart(targetId);
+  if(world.aiEnabled&&g.ai&&held&&Brain.isGraspable(held)){
+   if(g.mode==='go'){command.pushTargetId=null;command.graspTargetId=targetId;return true}
+   if(g.mode==='rest'){command.direction=0;command.jump=false;command.pushTargetId=null;command.intent='grasp';command.graspTargetId=targetId;return true}
+   if(g.mode==='help'&&command.graspTargetId===targetId){command.direction=0;command.jump=false;command.pushTargetId=null;command.intent='grasp';return true}
+  }
+  releaseHelpingGrasp(g,true);
+ }
+ if(g.graspIgnoreTargetId!=null){
+  var ignored=findPart(g.graspIgnoreTargetId),partsNear=motionParts(g),distance=ignored&&partsNear?Math.hypot(ignored.x-partsNear.hip.x,ignored.y-partsNear.hip.y):Infinity;
+  if(!ignored||distance>145)g.graspIgnoreTargetId=null;
+  else if(command.graspTargetId===g.graspIgnoreTargetId)command.graspTargetId=null;
+ }
+ if(g.graspCooldownUntil>state.tick)return false;
+ if(!world.aiEnabled||!g.ai||g.mode!=='help'||!command.graspTargetId)return false;
+ var target=findPart(command.graspTargetId),parts=motionParts(g);
+ if(!target||!Brain.isGraspable(target)||!parts||world.links.length>=800)return false;
+ // At most two distinct residents can share a hold on one light object.
+ if(helpingGraspCount(target.id)>=2)return false;
+ var hands=[parts.lh,parts.rh],hand=null,best=Infinity,contact=null;
+ for(var i=0;i<hands.length;i++)if(hands[i]){
+  var distance,point=null;
+  if(target.kind==='ball')distance=Math.hypot(hands[i].x-target.x,hands[i].y-target.y)-target.r;
+  else{var local=toLocal(target,hands[i].x,hands[i].y),bx=Math.max(-target.w/2,Math.min(target.w/2,local.x)),by=Math.max(-target.h/2,Math.min(target.h/2,local.y));distance=Math.hypot(local.x-bx,local.y-by);point={x:bx,y:by}}
+  if(distance<best){best=distance;hand=hands[i];contact=point}
+ }
+ if(!hand||best>hand.r+12)return false;
+ // Balls use a soft center tether; boxes use a local surface hinge. Both remain physical.
+ if(target.kind==='ball')world.links.push({id:uid(),a:hand.id,b:target.id,type:'spring',len:Math.max(8,hand.r+target.r-2),k:.12,breakable:true,strength:130,graspOwner:g.id});
+ else world.links.push({id:uid(),a:hand.id,b:target.id,type:'hinge',len:0,k:.18,ax:0,ay:0,bx:contact.x,by:contact.y,breakable:true,strength:95,graspOwner:g.id});
+ command.direction=0;command.jump=false;command.pushTargetId=null;command.intent='grasp';
+ return true;
 }
 function unhookFigure(id){
  var g=id?findGroup(id):selectedResident();
@@ -107,12 +178,19 @@ function unhookFigure(id){
 function setResidentTarget(id,x){
  var g=findGroup(id);
  if(!g||typeof x!=='number'||!isFinite(x)||x<0||x>W)return false;
- // A deliberate walk command unhooks external suspension ropes; preserve the figure's bones.
- releaseFigureConnections(g);
- g.ai=true;g.mode='go';g.targetX=x;g.brain=null;g.navigation=null;g.intent='go';
+ // Shared holders receive one coordinated destination and keep their physical grip.
+ var heldTarget=helpingGraspTargetId(g),team=[g];
+ if(heldTarget!=null&&helpingGraspCount(heldTarget)>1){
+  world.links.forEach(function(l){if(l.graspOwner&&team.every(function(member){return member.id!==l.graspOwner})){var member=findGroup(l.graspOwner);if(member&&helpingGraspTargetId(member)===heldTarget)team.push(member)}});
+ }
+ for(var i=0;i<team.length;i++){
+  var member=team[i];releaseFigureConnections(member,true);
+  member.ai=true;member.mode='go';member.targetX=x;member.brain=null;member.navigation=null;member.intent='go';
+ }
  // Choosing Walk is an explicit request to animate; never leave it silently paused.
  world.aiEnabled=true;state.paused=false;updatePause();
  state.selected=null;state.drag=null;updateResidents();
+ if(heldTarget!=null)toast(team.length>1?'Team carrying object to destination':g.name+' walking with held object');
  return true;
 }
 function motionParts(g){
@@ -139,7 +217,7 @@ function ensureControlledFigure(){
   if(score<bestScore){best=g;bestScore=score}
  }
  if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
- state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
+ releaseHelpingGrasp(best);state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
  var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
@@ -164,6 +242,7 @@ function updatePause(){
  $('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';
  var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];
  $('subTitle').textContent=challenge?('🎯 Level '+(challenge.index+1)+' · Ball → goal'+(state.paused?' · Paused':'')):(mode.name+(state.paused?' · Paused':' · '+mode.summary));
+ var objective=$('missionObjective');if(objective&&challenge&&!challenge.won)objective.textContent='🎯 Level '+(challenge.index+1)+'/'+Levels.levels.length+': '+Levels.levels[challenge.index].brief+' Keep the blue ball inside the green goal to finish.'+(state.paused?' Simulation paused — press ▶ Play to test your setup.':'');
 }
 function setProfile(){profile=options.quality==='auto'?((navigator.hardwareConcurrency||2)<4?'eco':'standard'):options.quality;resize()}
 function syncLayout(){resize();var compact=isCompactLayout();$('openMenu').classList.toggle('hidden',!compact);if(!compact)$('sidebar').classList.remove('open')}
@@ -270,7 +349,7 @@ function updateChallenges(){
  var action=$('challengeAction');if(action){action.textContent='🎮 Games';action.setAttribute('aria-label','Choose a game type')}
  updateGameModes();updateToolHint();
 }
-function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;gameMode='puzzles';if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();toast(level.brief);return true}
+function loadLevel(index){if(index<0||index>=unlocked||index>=Levels.levels.length)return false;gameMode='puzzles';if(!challenge&&!sandboxResume)sandboxResume={world:JSON.parse(JSON.stringify(world)),paused:state.paused,camera:{x:cam.x,y:cam.y,z:cam.z}};var level=Levels.levels[index];newWorld('empty');state.selected=null;state.drag=null;state.pan=null;state.keys.left=false;state.keys.right=false;state.keys.jump=false;setTool('grab');world.title=level.title;var p=ball(level.start.x,level.start.y,24,'#2676bd');if(!p)throw Error('Not enough room for challenge ball');level.blocks.forEach(function(b){block(b.x,b.y,b.w,b.h,!!b.fixed,'#aebbb7')});challenge={index:index,targetId:p.id,frames:0,won:false};$('worldTitle').textContent=world.title;state.paused=false;updatePause();updateChallenges();updateResidents();toast(level.brief);return true}
 function exitChallenge(){if(!challenge)return false;var restore=sandboxResume;sandboxResume=null;if(restore){assignWorld({format:'StickLab',version:4,world:restore.world},true);state.paused=restore.paused;cam.x=restore.camera.x;cam.y=restore.camera.y;cam.z=restore.camera.z;updateCameraFeedback()}else newWorld('playground');challenge=null;gameMode='sandbox';updateGameModes();updateChallenges();toast('Back in Free Sandbox · your world restored');return true}
 function completeLevel(){if(!challenge||challenge.won)return;challenge.won=true;unlocked=Math.max(unlocked,Math.min(Levels.levels.length,challenge.index+2));try{localStorage.setItem('sticklab_challenge_unlocks_v03',String(unlocked))}catch(e){}refreshPuzzlePicker();state.paused=true;updatePause();updateChallenges();toast('Physics solved! Level complete 🎉')}
 function rotatedOffset(p,x,y){var c=Math.cos(p.angle||0),s=Math.sin(p.angle||0);return{x:x*c-y*s,y:x*s+y*c}}
@@ -339,18 +418,41 @@ function residentInput(){
   if(chosen&&chosen.id===g.id)continue;
   var hip=findPart(g.hip);if(!hip||hip.fixed)continue;
   if(!g.brain||state.tick%rate===n%rate){
-   var nearby=[],goal=null;
-   for(var p=0;p<world.parts.length&&nearby.length<32;p++){
-    var item=world.parts[p];if(item.group||item.kind==='joint'||Math.abs(item.x-hip.x)>270||Math.abs(item.y-hip.y)>210)continue;
-    nearby.push(item);
+   var nearby=[],nearbyDistance=[],goal=null;
+   // Keep the nearest local geometry, not the first 32 parts in scene order.
+   // This preserves a fixed 32-item brain budget while avoiding missed walls
+   // in busy scenes where many distant props were created earlier.
+   for(var p=0;p<world.parts.length;p++){
+    var item=world.parts[p],dx=item.x-hip.x,dy=item.y-hip.y;
+    if(item.group||item.kind==='joint'||Math.abs(dx)>270||Math.abs(dy)>210)continue;
+    var distance=dx*dx+dy*dy;
+    if(nearby.length===32&&distance>=nearbyDistance[31])continue;
+    var at=nearby.length;
+    if(at===32){nearby.pop();nearbyDistance.pop();at=31}
+    while(at>0&&distance<nearbyDistance[at-1])at--;
+    nearby.splice(at,0,item);nearbyDistance.splice(at,0,distance);
    }
    if(g.mode==='help'){
-    if(challenge&&!challenge.won)goal=findPart(challenge.targetId);
-    else{for(var b=0;b<nearby.length;b++)if(nearby[b].kind==='ball'&&!nearby[b].fixed&&nearby[b].r>12){goal=nearby[b];break}}
+    var heldTargetId=helpingGraspTargetId(g);
+    if(heldTargetId)goal=findPart(heldTargetId);
+    else if(challenge&&!challenge.won)goal=findPart(challenge.targetId);
+    else{
+     var freeGoal=null;
+     for(var b=0;b<nearby.length;b++)if(Brain.isGraspable(nearby[b])){
+      var holders=helpingGraspCount(nearby[b].id),near=Math.hypot(nearby[b].x-hip.x,nearby[b].y-hip.y);
+      // Invite one nearby helper to a resident's existing grip before assigning a new object.
+      if(holders===1&&near<240){goal=nearby[b];break}
+      if(holders===0&&!freeGoal)freeGoal=nearby[b];
+     }
+     if(!goal)goal=freeGoal;
+    }
    }
    var previousIntent=g.intent;
-   g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR);
-   g.intent=g.brain.intent;
+   g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR,findPart(helpingGraspTargetId(g)));
+   maintainHelpingGrasp(g,g.brain);g.intent=g.brain.intent;
+   var graspTarget=helpingGraspTargetId(g);
+   if(graspTarget)g.motionState=helpingGraspCount(graspTarget)>1?'sharing':g.mode==='go'?'carrying':'grasping';
+   if(previousIntent!==g.intent&&(previousIntent==='grasp'||g.intent==='grasp'))updateResidents();
    if(g.mode==='go'&&g.intent!==previousIntent){
     updateControlHint();
     if(g.intent==='blocked')toast((g.name||'Figure')+' is blocked · try a new route or move the obstacle');
@@ -359,7 +461,9 @@ function residentInput(){
    if(g.brain.activateMotorId){var motor=findPart(g.brain.activateMotorId);if(motor&&motor.kind==='wheel'&&!motor.motor){motor.motor=true;motor.motorDirection=g.brain.direction||1}}
   }
   driveFigure(g,g.brain||{direction:0});
-  if(g.mode==='go'&&g.brain&&g.brain.intent==='arrived'){g.mode='rest';g.targetX=null;g.brain=null;g.intent='arrived'}
+  var heldTarget=helpingGraspTargetId(g);
+  if(heldTarget)g.motionState=helpingGraspCount(heldTarget)>1?'sharing':g.mode==='go'?'carrying':'grasping';
+  if(g.mode==='go'&&g.brain&&g.brain.intent==='arrived'){g.mode='rest';g.targetX=null;g.brain=null;g.intent='arrived';updateResidents()}
 
  }
 }
@@ -374,9 +478,13 @@ function simulate(){state.tick++;residentInput();playerInput();
   var pairs=Core.collisionPairs(world.parts,96);state.collisionCandidates=pairs.length;for(i=0;i<pairs.length;i++)collision(world.parts[pairs[i][0]],world.parts[pairs[i][1]]);
  }
  // Fracture is applied after constraints, never while iterating link/body arrays.
- var before=world.links.length;world.links=world.links.filter(function(l){return !Machines.broken(l,findPart(l.a),findPart(l.b))});
+ var brokenOwners=[];
+ world.links=world.links.filter(function(l){var broken=Machines.broken(l,findPart(l.a),findPart(l.b));if(broken&&l.graspOwner&&brokenOwners.indexOf(l.graspOwner)<0)brokenOwners.push(l.graspOwner);return !broken});
+ brokenOwners.forEach(function(id){var owner=findGroup(id);if(owner){owner.graspCooldownUntil=state.tick+30;owner.dropNoticeUntil=state.tick+120;owner.brain=null;if(owner.intent==='grasp')owner.intent=owner.mode;owner.motionState='standing'}});
+ if(brokenOwners.length===1){var dropped=findGroup(brokenOwners[0]);toast((dropped?dropped.name:'A resident')+' lost its grip after a hard pull')}
+ else if(brokenOwners.length>1)toast('Residents lost their grip after a hard pull');
  var damaged={},shards=[];world.parts.forEach(function(p){if(p.hp<=0&&p.kind==='box'&&!p.fixed){damaged[p.id]=1;shards.push({x:p.x,y:p.y,color:p.color})}});
- if(shards.length){world.parts=world.parts.filter(function(p){return !damaged[p.id]});world.links=world.links.filter(function(l){return !damaged[l.a]&&!damaged[l.b]});rebuildIndex();shards.slice(0,4).forEach(function(v){for(var d=0;d<2;d++)if(world.parts.length<limits[profile].objects){var bit=part('ball',v.x+(d?10:-10),v.y,{r:7,color:v.color,material:'wood'});bit.px=bit.x+(d?3:-3);bit.py=bit.y+3}})}
+ if(shards.length){var lostGrips=[];world.links.forEach(function(l){if(l.graspOwner&&(damaged[l.a]||damaged[l.b])&&lostGrips.indexOf(l.graspOwner)<0)lostGrips.push(l.graspOwner)});world.parts=world.parts.filter(function(p){return !damaged[p.id]});world.links=world.links.filter(function(l){return !damaged[l.a]&&!damaged[l.b]});world.groups.forEach(function(g){if(damaged[g.graspIgnoreTargetId])g.graspIgnoreTargetId=null});lostGrips.forEach(function(id){var owner=findGroup(id);if(owner){owner.graspCooldownUntil=state.tick+30;owner.dropNoticeUntil=state.tick+120;owner.brain=null;if(owner.intent==='grasp')owner.intent=owner.mode;owner.motionState='standing'}});if(lostGrips.length)toast('A held box broke apart');rebuildIndex();shards.slice(0,4).forEach(function(v){for(var d=0;d<2;d++)if(world.parts.length<limits[profile].objects){var bit=part('ball',v.x+(d?10:-10),v.y,{r:7,color:v.color,material:'wood'});bit.px=bit.x+(d?3:-3);bit.py=bit.y+3}})}
  if(challenge&&!challenge.won){var target=findPart(challenge.targetId);challenge.frames=Levels.advance(target,Levels.levels[challenge.index],challenge.frames);if(challenge.frames>=Levels.requiredFrames)completeLevel()}
 }
 function roundedRect(x,y,w,h,r){r=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath()}
@@ -390,7 +498,7 @@ function backdrop(){var grad=ctx.createLinearGradient(0,0,0,height);grad.addColo
  ctx.strokeStyle='#d1ddd4';ctx.lineWidth=2;ctx.strokeRect(0,0,W,H);
  ctx.restore()}
 function drawLink(l){if(l.type==='brace')return;var a=findPart(l.a),b=findPart(l.b);if(!a||!b)return;
- ctx.save();ctx.lineCap='round';ctx.lineJoin='round';if(l.type==='hinge'){var pa=hingePoint(a,l.ax,l.ay),pb=hingePoint(b,l.bx,l.by);ctx.beginPath();ctx.arc((pa.x+pb.x)/2,(pa.y+pb.y)/2,8,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=COLORS.violet;ctx.stroke();ctx.restore();return;}if(l.type==='bone'){ctx.strokeStyle='#273749';ctx.lineWidth=5.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';if(l.graspOwner){var start=a,end=b;if(l.type==='hinge'){var hand=a.group===l.graspOwner?a:b,object=hand===a?b:a;start=hand===a?hingePoint(hand,l.ax,l.ay):hingePoint(hand,l.bx,l.by);end=hand===a?hingePoint(object,l.bx,l.by):hingePoint(object,l.ax,l.ay)}ctx.strokeStyle=COLORS.aqua;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();ctx.beginPath();ctx.arc((start.x+end.x)/2,(start.y+end.y)/2,4,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.restore();return;}if(l.type==='hinge'){var pa=hingePoint(a,l.ax,l.ay),pb=hingePoint(b,l.bx,l.by);ctx.beginPath();ctx.arc((pa.x+pb.x)/2,(pa.y+pb.y)/2,8,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=COLORS.violet;ctx.stroke();ctx.restore();return;}if(l.type==='bone'){ctx.strokeStyle='#273749';ctx.lineWidth=5.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
  else if(l.type==='rope'){ctx.strokeStyle='#947f6a';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([])}
  else if(l.type==='spring'){var dx=b.x-a.x,dy=b.y-a.y,n=Math.hypot(dx,dy)||1,nx=-dy/n,ny=dx/n;ctx.strokeStyle='#af7cbe';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.x,a.y);for(var i=1;i<12;i++){var t=i/12,off=(i%2?-1:1)*10;ctx.lineTo(a.x+dx*t+nx*off,a.y+dy*t+ny*off)}ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.restore()}
 function drawPart(p){ctx.save();if(p.kind==='box'){ctx.translate(p.x,p.y);ctx.rotate(p.angle||0);var x=-p.w/2,y=-p.h/2;ctx.fillStyle='#d2d7cf';roundedRect(x+4,y+7,p.w,p.h,5);ctx.fill();ctx.fillStyle=p.color;roundedRect(x,y,p.w,p.h,5);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#273749';ctx.stroke();ctx.strokeStyle='#fef9ef66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+11,y+10);ctx.lineTo(x+p.w-11,y+10);ctx.stroke();ctx.strokeStyle='#27374955';ctx.beginPath();ctx.moveTo(x+12,y+14);ctx.lineTo(x+p.w-12,y+p.h-12);ctx.moveTo(x+p.w-12,y+14);ctx.lineTo(x+12,y+p.h-12);ctx.stroke()}
@@ -513,7 +621,7 @@ function assignWorld(input,clearUndo){
  // Validation and migration MUST finish before replacing the active simulation.
  var migrated=Core.normalizeScene(input),candidate=migrated.world;
  candidate.parts.forEach(setMass);
- world=candidate;challenge=null;updateChallenges();state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;
+ world=candidate;if(!world.aiEnabled)world.links=world.links.filter(function(l){return !l.graspOwner});challenge=null;updateChallenges();state.selected=null;state.linkStart=null;state.linkPoint=null;state.drag=null;
  rebuildIndex();if(clearUndo)forgetHistory();$('worldTitle').textContent=world.title;updateCounts();updateResidents();
 }
 function slotKey(){return 'sticklab_scene_v4_'+$('saveSlot').value}
@@ -538,6 +646,7 @@ function controls(){
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
+ $('dropObject').onclick=function(){var g=selectedResident();if(!dropHelpingObject(g))toast('Select a resident holding an object first')};
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};
  $('unhookFigure').onclick=function(){unhookFigure()};

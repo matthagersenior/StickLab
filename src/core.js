@@ -45,8 +45,11 @@ function normalizeScene(input){
   if(l.k!==undefined&&(!finite(l.k)||l.k<0||l.k>1))throw Error('Invalid stiffness');
   if(l.type==='hinge'&&[l.ax,l.ay,l.bx,l.by].some(function(v){return !finite(v)||Math.abs(v)>500}))throw Error('Invalid hinge offset');
   if(l.strength!==undefined&&(!finite(l.strength)||l.strength<1||l.strength>10000))throw Error('Invalid link strength');
+  if(l.graspOwner!==undefined&&(['spring','hinge'].indexOf(l.type)<0||typeof l.graspOwner!=='string'||!/^f[0-9]+$/.test(l.graspOwner)))throw Error('Invalid grasp link');
   taken[l.id]=1;maxId=Math.max(maxId,l.id);
-  return {id:l.id,a:l.a,b:l.b,type:l.type,len:l.len,k:l.k===undefined?1:l.k,ax:l.type==='hinge'?l.ax:0,ay:l.type==='hinge'?l.ay:0,bx:l.type==='hinge'?l.bx:0,by:l.type==='hinge'?l.by:0,breakable:!!l.breakable,strength:l.strength===undefined?90:l.strength};
+  var normalized={id:l.id,a:l.a,b:l.b,type:l.type,len:l.len,k:l.k===undefined?1:l.k,ax:l.type==='hinge'?l.ax:0,ay:l.type==='hinge'?l.ay:0,bx:l.type==='hinge'?l.bx:0,by:l.type==='hinge'?l.by:0,breakable:!!l.breakable,strength:l.strength===undefined?90:l.strength};
+  if(l.graspOwner!==undefined)normalized.graspOwner=l.graspOwner;
+  return normalized;
  });
  var groups=world.groups.map(function(g){
   if(!g||typeof g.id!=='string'||!/^f[0-9]+$/.test(g.id)||!Array.isArray(g.nodes)||!g.nodes.length||g.nodes.length>30||!integer(g.hip)||!integer(g.head)||g.nodes.indexOf(g.hip)<0||g.nodes.indexOf(g.head)<0)throw Error('Invalid ragdoll group');
@@ -58,9 +61,22 @@ function normalizeScene(input){
   if(g.targetX!==undefined&&g.targetX!==null&&(!finite(g.targetX)||g.targetX<0||g.targetX>2200))throw Error('Invalid movement target');
   var mem=g.memory||{hazards:0,lastHazardX:null,interactions:0};
   if(typeof mem!=='object'||Array.isArray(mem)||!(finite(mem.hazards)&&Math.floor(mem.hazards)===mem.hazards)||mem.hazards<0||mem.hazards>99||!(finite(mem.interactions)&&Math.floor(mem.interactions)===mem.interactions)||mem.interactions<0||mem.interactions>99||(mem.lastHazardX!==null&&(!finite(mem.lastHazardX)||Math.abs(mem.lastHazardX)>5000)))throw Error('Invalid agent memory');
-  return {id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',targetX:g.targetX===undefined?null:g.targetX,memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
+  var normalized={id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',targetX:g.targetX===undefined?null:g.targetX,memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
+  if(g.graspIgnoreTargetId!==undefined&&g.graspIgnoreTargetId!==null){var ignored=ids[g.graspIgnoreTargetId];var eligible=ignored&&!ignored.group&&!ignored.fixed&&((ignored.kind==='ball'&&ignored.r>12&&ignored.r<=42)||(ignored.kind==='box'&&ignored.w<=72&&ignored.h<=72&&ignored.w*ignored.h<=4200));if(!integer(g.graspIgnoreTargetId)||!eligible)throw Error('Invalid ignored grasp target');normalized.graspIgnoreTargetId=g.graspIgnoreTargetId}
+  return normalized;
 
  });
+ var graspOwners={},graspTargets={};
+ links.forEach(function(l){if(l.graspOwner){
+  var owner=groups.filter(function(g){return g.id===l.graspOwner})[0],a=ids[l.a],b=ids[l.b];
+  var targetId=a.group===l.graspOwner?b.id:a.id;
+  var hand=a.group===l.graspOwner?a:b,target=a.group===l.graspOwner?b:a;
+  var validTarget=target&&!target.group&&!target.fixed&&((target.kind==='ball'&&target.r>12&&target.r<=42&&l.type==='spring')||(target.kind==='box'&&target.w<=72&&target.h<=72&&target.w*target.h<=4200&&l.type==='hinge'));
+  var targetCount=graspTargets[targetId]||0;
+  var valid=owner&&owner.ai&&['help','go','rest'].indexOf(owner.mode)>=0&&hand.kind==='joint'&&owner.nodes.indexOf(hand.id)>=0&&validTarget&&!graspOwners[l.graspOwner]&&targetCount<2;
+  if(!valid)throw Error('Invalid grasp ownership');
+  graspOwners[l.graspOwner]=true;graspTargets[targetId]=targetCount+1;
+ }});
  parts.forEach(function(p){if(p.group&&!groups.some(function(g){return g.id===p.group&&g.nodes.indexOf(p.id)>=0}))throw Error('Orphan ragdoll body')});
  if(world.aiEnabled!==undefined&&typeof world.aiEnabled!=='boolean')throw Error('Invalid AI setting');
  var next=integer(world.next)&&world.next>maxId?world.next:maxId+1;

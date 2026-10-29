@@ -1,6 +1,10 @@
-# StickLab v0.5.6 — Smarter Go Here Navigation
+# StickLab v0.5.10 — Mobile clarity and team carrying
 
-**Walk around the world with better feedback:** autonomous residents now try bounded physical hops over small barriers, stop at walls too high to clear, and retry a stalled route a limited number of times. If movement is blocked, the on-screen hint explains why and you can set another destination with **📍 Walk**. No teleports, external libraries or navigation mesh; existing low-end settings and collision physics remain. [v0.5.6 release notes](docs/releases/v0.5.6-navigation.md).
+**Residents in Help mode can hold nearby loose balls and small boxes, then carry the held object with 📍 Walk.** If two residents share a grip, sending either one to a destination sends both together. Select a holder and use **↘ Drop held object** to release it without an immediate re-grab. Puzzle levels now clear stale figure controls, show a clear pause prompt, and hide movement arrows when there is no figure to control. [v0.5.10 release notes](docs/releases/v0.5.10-mobile-team-carry.md).
+
+Grips can break under strong force, and resident status explains when an object is held, shared, carried, or dropped. [v0.5.9 grasp and carry notes](docs/releases/v0.5.9-carrying-grips.md).
+
+Go Here also makes more context-aware local movement decisions: it considers the nearest 32 objects in a busy scene, ignores barriers beyond the chosen destination, and checks for overhead clearance before hopping. Angled or overly wide structures remain blockers; figures attempt physical hops only over low, narrow obstacles. This is still local obstacle-aware movement, not complete pathfinding. [v0.5.7 movement notes](docs/releases/v0.5.7-angled-obstacles.md).
 
 
 
@@ -54,7 +58,7 @@ The starter levels are: **First Push** (move a ball across the floor), **Bridge 
 - Characters wander, investigate loose balls, avoid nearby falling objects, and try to hop over low fixed obstacles. They move by applying impulses to their existing ragdoll joints, not teleporting.
 - Select a resident in Grab mode to control it directly (keyboard or on-screen arrows/jump); **Release control** resumes its AI.
 - Set Explore, Help or Rest, or switch AI on/off globally while keeping the physical simulation running.
-- In Help mode, characters can approach a loose ball, assist by pushing it through collisions, or activate an unpowered nearby wheel. They may help with Physics Challenges, but **do not automatically solve every level**.
+- In Help mode, characters can approach and physically hold a loose ball or small box, push a ball through collisions, or activate an unpowered nearby wheel. Two residents can share one object's hold. They may help with Physics Challenges, but **do not automatically solve every level**.
 - Offline decision-making is throttled: Eco 2 active agents, Standard 5, High 8; the remaining figures continue as physics-driven ragdolls.
 - v4 exports save resident names, settings, personalities and bounded hazard/interaction memories. Imports and old v0.1–v0.3 save files remain supported and migrate safely; old figures remain passive.
 
@@ -74,7 +78,7 @@ Touch: tap a tool and tap the canvas; two fingers pan/zoom. Keyboard: number key
 
 ## Save and compatibility
 
-v0.4 exports `{format:"StickLab",version:4,world:{parts,links,groups,aiEnabled,...}}`. Imported v0.1 and v0.2 scene files are migrated and validated before changing the active world. Save Slot 1 can read legacy v0.1 storage, and each slot can read an existing v0.2/v0.3 save when no v0.4 save exists. Current saves use `sticklab_scene_v4_<slot>`. Challenge unlocks are stored separately under `sticklab_challenge_unlocks_v03` and are **not** granted by importing a saved scene. Save and unlock data do not synchronize across devices.
+v0.4 exports `{format:"StickLab",version:4,world:{parts,links,groups,aiEnabled,...}}`. Current v4 saves can retain a validated AI grasp connection during Help, carrying, or arrival at a destination. Imported v0.1 and v0.2 scene files are migrated and validated before changing the active world. Save Slot 1 can read legacy v0.1 storage, and each slot can read an existing v0.2/v0.3 save when no v0.4 save exists. Current saves use `sticklab_scene_v4_<slot>`. Challenge unlocks are stored separately under `sticklab_challenge_unlocks_v03` and are **not** granted by importing a saved scene. Save and unlock data do not synchronize across devices.
 
 ## Development
 
