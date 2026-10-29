@@ -2,7 +2,7 @@
    No DOM, no timers, no random calls, no direct modification of physics bodies. */
 (function(root){'use strict';
 var personalities=['curious','cautious','helpful'],modes=['wander','help','rest','go'];
-var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=72,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
+var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=82,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
 function isGraspable(p){return !!(p&&!p.group&&!p.fixed&&((p.kind==='ball'&&p.r>12&&p.r<=42)||(p.kind==='box'&&p.w>=5&&p.h>=5&&p.w<=72&&p.h<=72&&p.w*p.h<=4200)))}
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
@@ -55,7 +55,7 @@ function routeBarrier(hip,nearby,direction,floor,targetX,carried){
   // A ground-level knee-height box is hopable, not a 150px wall or overhead platform.
   // Restrict hopping to nearly level boxes. An angled body's AABB is safe for
   // detecting a block, but is not enough evidence that a physical hop clears it.
-  var hop=!carried&&Math.abs(bounds.angle)<=.1&&(bounds.right-bounds.left)<=MAX_HOP_WIDTH&&bounds.top>=hip.y+8&&floor-bounds.top<=MAX_HOP_HEIGHT;
+  var hop=!carried&&Math.abs(bounds.angle)<=.1&&(bounds.right-bounds.left)<=MAX_HOP_WIDTH&&bounds.top>=hip.y-6&&floor-bounds.top<=MAX_HOP_HEIGHT;
   if(hop)hop=hasJumpClearance(hip,bounds,direction,nearby);
   if(!nearest||front<nearest.distance)nearest={distance:front,hop:hop};
  }
