@@ -1,6 +1,8 @@
-# StickLab v0.5.14 — Reliable Walk cancellation
+# StickLab v0.5.15 — Size-aware team carrying
 
-**Tap Grab again during an active Walk to stop movement immediately.** Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.14 control fix](docs/releases/v0.5.14-walk-cancel.md) · [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
+**Shared carriers now spread out according to the held object's actual collision width, including rotated boxes, while keeping the object centered on the chosen destination.** This reduces crowding around larger props and avoids skewing team destinations near world edges. [v0.5.15 team carry notes](docs/releases/v0.5.15-size-aware-team-carry.md) · [v0.5.14 control fix](docs/releases/v0.5.14-walk-cancel.md).
+
+Tap Grab again during an active Walk to stop movement immediately. Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
 
 Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenge starts clear stale figure controls, explain the paused state, and hide movement arrows when no figure is selected. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
 

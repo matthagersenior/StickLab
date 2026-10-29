@@ -210,11 +210,18 @@ function setResidentTarget(id,x){
  if(heldTarget!=null&&helpingGraspCount(heldTarget)>1){
   world.links.forEach(function(l){if(l.graspOwner&&team.every(function(member){return member.id!==l.graspOwner})){var member=findGroup(l.graspOwner);if(member&&helpingGraspTargetId(member)===heldTarget)team.push(member)}});
  }
- // Keep the shared object near the requested point, with its holders on either side.
+ // Keep the object centered on the requested point and give both holders room
+ // around its collision bounds, including when boxes have been rotated.
  team.sort(function(a,b){var pa=findPart(a.hip),pb=findPart(b.hip);return (pa?pa.x:0)-(pb?pb.x:0)});
+ var formationHalfSpan=0;
+ if(team.length>1){
+  var held=findPart(heldTarget),extent=held?(held.kind==='box'?Math.abs(Math.cos(held.angle||0))*held.w/2+Math.abs(Math.sin(held.angle||0))*held.h/2:held.r||0):0;
+  formationHalfSpan=Math.max(22,Math.min(66,extent+18))*(team.length-1)/2;
+  x=Math.max(30+formationHalfSpan,Math.min(W-30-formationHalfSpan,x));
+ }
  for(var i=0;i<team.length;i++){
   var member=team[i];releaseFigureConnections(member,true);
-  var offset=team.length>1?(i-(team.length-1)/2)*44:0;
+  var offset=team.length>1?(i-(team.length-1)/2)*formationHalfSpan*2:0;
   member.ai=true;member.mode='go';member.targetX=Math.max(30,Math.min(W-30,x+offset));member.teamCarryTargetId=team.length>1?heldTarget:null;member.brain=null;member.navigation=null;member.routePlan=null;member.intent='go';
  }
  // Choosing Walk is an explicit request to animate; never leave it silently paused.
