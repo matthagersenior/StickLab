@@ -223,6 +223,13 @@ function setResidentTarget(id,x){
  if(heldTarget!=null)toast(team.length>1?'Team carrying object to destination':g.name+' walking with held object');
  return true;
 }
+function cancelResidentWalks(){
+ var walkers=world.groups.filter(function(g){return g.ai&&g.mode==='go'});
+ if(!walkers.length)return false;
+ walkers.forEach(function(g){releaseClimb(g);g.mode='rest';g.targetX=null;g.navigation=null;g.routePlan=null;g.brain=null;g.intent='rest';g.teamCarryTargetId=null});
+ updateResidents();updateControlHint();toast(walkers.length>1?'Walk canceled · figures stopped and kept their grips':'Walk canceled · figure stopped');
+ return true;
+}
 function motionParts(g){
  var ids=g.nodes,at=function(i){return findPart(ids[i])};
  // Stored v1–v4 figure nodes retain this canonical head/torso/hip/knee/foot order.
@@ -267,7 +274,7 @@ function prepareWalking(){
  state.selected=nearest.hip;state.drag=null;state.pan=null;
  updateResidents();return true;
 }
-function setTool(name){if(!toolHints[name])return;if(name==='goto'&&!prepareWalking())return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();updateControlHint();if(isCompactLayout())$('sidebar').classList.remove('open');if(name==='goto')toast('Tap your destination · press Grab to cancel')}
+function setTool(name){if(!toolHints[name])return;if(name==='grab'&&state.tool==='grab'&&cancelResidentWalks())return;if(name==='goto'&&!prepareWalking())return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();updateControlHint();if(isCompactLayout())$('sidebar').classList.remove('open');if(name==='goto')toast('Tap your destination · press Grab to cancel')}
 function updatePause(){
  $('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';
  var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];

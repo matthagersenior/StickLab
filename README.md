@@ -1,6 +1,6 @@
-# StickLab v0.5.12 — Planned multi-barrier movement
+# StickLab v0.5.14 — Reliable Walk cancellation
 
-**Walk plans a sequence of low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge.** Shared carriers keep a two-person formation and wait for both residents to arrive together. This bounded climb does not yet support carrying while climbing, climbing broad or angled structures, or choosing detours. [v0.5.13 release notes](docs/releases/v0.5.13-ledge-climb.md) · [v0.5.12 route-planning notes](docs/releases/v0.5.12-planned-movement.md).
+**Tap Grab again during an active Walk to stop movement immediately.** Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.14 control fix](docs/releases/v0.5.14-walk-cancel.md) · [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
 
 Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenge starts clear stale figure controls, explain the paused state, and hide movement arrows when no figure is selected. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
 

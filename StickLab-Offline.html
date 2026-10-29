@@ -195,7 +195,7 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Grab figures and objects to move them. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and can help push or operate nearby wheels. Motor carts drive themselves; motors can be toggled. Tap a figure to control it with arrows and jump. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.13</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.14</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
@@ -895,6 +895,13 @@ function setResidentTarget(id,x){
  if(heldTarget!=null)toast(team.length>1?'Team carrying object to destination':g.name+' walking with held object');
  return true;
 }
+function cancelResidentWalks(){
+ var walkers=world.groups.filter(function(g){return g.ai&&g.mode==='go'});
+ if(!walkers.length)return false;
+ walkers.forEach(function(g){releaseClimb(g);g.mode='rest';g.targetX=null;g.navigation=null;g.routePlan=null;g.brain=null;g.intent='rest';g.teamCarryTargetId=null});
+ updateResidents();updateControlHint();toast(walkers.length>1?'Walk canceled · figures stopped and kept their grips':'Walk canceled · figure stopped');
+ return true;
+}
 function motionParts(g){
  var ids=g.nodes,at=function(i){return findPart(ids[i])};
  // Stored v1–v4 figure nodes retain this canonical head/torso/hip/knee/foot order.
@@ -939,7 +946,7 @@ function prepareWalking(){
  state.selected=nearest.hip;state.drag=null;state.pan=null;
  updateResidents();return true;
 }
-function setTool(name){if(!toolHints[name])return;if(name==='goto'&&!prepareWalking())return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();updateControlHint();if(isCompactLayout())$('sidebar').classList.remove('open');if(name==='goto')toast('Tap your destination · press Grab to cancel')}
+function setTool(name){if(!toolHints[name])return;if(name==='grab'&&state.tool==='grab'&&cancelResidentWalks())return;if(name==='goto'&&!prepareWalking())return;state.tool=name;state.linkStart=null;state.linkPoint=null;document.querySelectorAll('[data-tool]').forEach(function(b){var active=b.dataset.tool===name;b.classList.toggle('active',active);b.setAttribute('aria-pressed',active?'true':'false')});updateToolHint();updateControlHint();if(isCompactLayout())$('sidebar').classList.remove('open');if(name==='goto')toast('Tap your destination · press Grab to cancel')}
 function updatePause(){
  $('pause').textContent=state.paused?'▶ Play':'Ⅱ Pause';
  var mode=GAME_MODES.filter(function(g){return g.id===gameMode})[0]||GAME_MODES[0];
