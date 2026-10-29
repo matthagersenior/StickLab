@@ -758,7 +758,7 @@ function updateResidents(){
 }
 function setLivingAI(on){world.aiEnabled=!!on;if(!world.aiEnabled)world.groups.forEach(function(g){releaseHelpingGrasp(g);releaseClimb(g);g.brain=null});updateResidents();return world.aiEnabled}
 function releaseResident(){var g=selectedResident();if(g)g.brain=null;state.selected=null;state.drag=null;updateResidents()}
-function chooseResident(id){var g=findGroup(id);if(!g)return false;g.brain=null;state.selected=g.hip;state.drag=null;updateResidents();return true}
+function chooseResident(id){var g=findGroup(id);if(!g)return false;releaseClimb(g);g.brain=null;state.selected=g.hip;state.drag=null;updateResidents();return true}
 function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;if(mode!=='help')releaseHelpingGrasp(g);if(mode!=='go')releaseClimb(g);if(mode==='help')g.graspIgnoreTargetId=null;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.routePlan=null;g.brain=null;updateResidents();return true}
 function releaseFigureConnections(g,preserveGrasp){
  if(!g)return 0;
@@ -919,7 +919,7 @@ function ensureControlledFigure(){
   if(score<bestScore){best=g;bestScore=score}
  }
  if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
- releaseHelpingGrasp(best);state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
+ releaseHelpingGrasp(best);releaseClimb(best);state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
  var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
@@ -1273,7 +1273,7 @@ function detachAt(x,y,p){
  updateCounts();return true;
 }
 function pointerStart(id,cx,cy){var pos=worldPoint(cx,cy),p=hitTest(pos.x,pos.y);state.pointerCoords=pos;
- if(state.tool==='grab'){if(p){if(challenge&&!challenge.won&&p.id===challenge.targetId){toast('Solve the puzzle using physics tools');return}state.selected=p.id;state.drag={id:id,part:p,target:pos};if(p.group){toast('Figure selected · arrows to move · ↑ to jump · release to restore AI');updateResidents()}}else{state.pan={id:id,cx:cx,cy:cy,x:cam.x,y:cam.y};state.selected=null;updateResidents()}}
+ if(state.tool==='grab'){if(p){if(challenge&&!challenge.won&&p.id===challenge.targetId){toast('Solve the puzzle using physics tools');return}state.selected=p.id;state.drag={id:id,part:p,target:pos};if(p.group){releaseClimb(findGroup(p.group));toast('Figure selected · arrows to move · ↑ to jump · release to restore AI');updateResidents()}}else{state.pan={id:id,cx:cx,cy:cy,x:cam.x,y:cam.y};state.selected=null;updateResidents()}}
  else if(state.tool==='goto'){var chosen=selectedResident();if(chosen&&setResidentTarget(chosen.id,pos.x)){setTool('grab');toast(chosen.name+' · walking to destination')}else toast('Select a figure with Grab, then choose Go Here')}
  else if(state.tool==='erase'){if(p)erase(p)}
  else if(state.tool==='detach'){detachAt(pos.x,pos.y,p)}
