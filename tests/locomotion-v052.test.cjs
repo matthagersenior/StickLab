@@ -117,3 +117,17 @@ test('Help mode chooses a nearby ball to push, but never fabricates a target for
  assert.equal(Brain.decide(g,hip,[far],far,21,930).pushTargetId,null);
  assert.equal(Brain.decide(g,hip,[],null,22,930).pushTargetId,null);
 });
+
+test('run and sprint deliver progressively stronger grounded movement impulses',()=>{
+ const measure=pace=>{const {group,parts}=actor();Locomotion.step(group,parts,{direction:1,pace},[],930,1);return 500-parts.hip.px};
+ const walk=measure('walk'),run=measure('run'),sprint=measure('sprint');
+ assert.ok(run>walk,'run should accelerate faster than walk');assert.ok(sprint>run,'sprint should accelerate faster than run');
+ assert.ok(sprint<1.2,'boosted motor impulse stays bounded');
+});
+test('jump boost increases the grounded launch impulse and keeps cooldown',()=>{
+ const normal=actor(),boosted=actor();
+ assert.equal(Locomotion.step(normal.group,normal.parts,{jump:true},[],930,60).jumped,true);
+ assert.equal(Locomotion.step(boosted.group,boosted.parts,{jump:true,jumpBoost:true},[],930,60).jumped,true);
+ assert.ok(boosted.parts.hip.py-normal.parts.hip.py>2,'boost should add a visible physical impulse');
+ assert.equal(Locomotion.step(boosted.group,boosted.parts,{jump:true,jumpBoost:true},[],930,61).jumped,false);
+});

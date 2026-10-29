@@ -24,22 +24,23 @@ var GAME_MODES=[
 ];
 try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getItem('sticklab_challenge_unlocks_v03'),10)||1))}catch(e){}
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
-var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
+var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null,pace:'walk',jumpBoost:false};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination to plan across low barriers. Residents can attempt a physical grip-and-pull over narrow ledges; tall walls, routes around obstacles, and carrying while climbing remain unsupported. Held objects travel with the resident; shared holders move as a team. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination to plan across low barriers. Residents can attempt a physical grip-and-pull over narrow ledges; tall walls, routes around obstacles, and carrying while climbing remain unsupported. Held objects travel with the resident; shared holders move as a team. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',springpad:'<b>Spring Pad.</b> Place a fixed bounce platform; anything that lands on it can rebound much higher.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
-function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
+function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};if(opts.springStrength)p.springStrength=opts.springStrength;setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
 function setMass(p){p.inv=p.fixed?0:1/(p.kind==='box'?Math.max(8,(p.w*p.h)/125):Math.max(3,p.r*p.r/50));p.iin=p.kind==='box'&&!p.fixed?12*p.inv/(p.w*p.w+p.h*p.h):0}
 function link(a,b,type,length,stiffness){if(!a||!b||a.id===b.id)return null;var l={id:uid(),a:a.id,b:b.id,type:type,len:length==null?Math.hypot(a.x-b.x,a.y-b.y):length,k:stiffness==null?1:stiffness,breakable:type==='rope'||type==='spring',strength:type==='rope'?85:110};world.links.push(l);return l}
 function figure(x,y,living){if(!room(14))return null;var group='f'+uid();var defs={head:[0,-79,13],neck:[0,-55,4],chest:[0,-33,6],hip:[0,2,6],ls:[-16,-47,5],rs:[16,-47,5],le:[-27,-22,4],re:[27,-22,4],lh:[-30,5,5],rh:[30,5,5],lk:[-13,38,5],rk:[13,38,5],lf:[-17,76,6],rf:[17,76,6]};var nodes={};Object.keys(defs).forEach(function(k){var v=defs[k];nodes[k]=part('joint',x+v[0],y+v[1],{r:v[2],group:group,color:COLORS.ink})});
  var bones=[['head','neck'],['neck','chest'],['chest','hip'],['chest','ls'],['chest','rs'],['ls','le'],['rs','re'],['le','lh'],['re','rh'],['hip','lk'],['hip','rk'],['lk','lf'],['rk','rf'],['ls','rs'],['chest','lk'],['chest','rk'],['ls','hip'],['rs','hip']];bones.forEach(function(pair,i){link(nodes[pair[0]],nodes[pair[1]],i<13?'bone':'brace',null,.88)});var serial=parseInt(group.slice(1),10)||0,names=['Pip','Nova','Rook','Echo','Dot','Moss','June','Spar'],traits=['curious','cautious','helpful'];
- world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true,ai:!!living,name:names[serial%names.length]+' '+serial,personality:traits[serial%3],mode:living?'wander':'rest',memory:{hazards:0,lastHazardX:null,interactions:0}});return nodes.hip}
+ world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true,ai:!!living,name:names[serial%names.length]+' '+serial,personality:traits[serial%3],mode:living?'wander':'rest',pace:'walk',jumpBoost:false,memory:{hazards:0,lastHazardX:null,interactions:0}});return nodes.hip}
 function resident(x,y){return figure(x,y,true)}
 function countEntities(){return world.parts.filter(function(p){return !p.group}).length+world.groups.length}
 function room(n){if(world.parts.length+n<=limits[profile].objects)return true;toast('Object limit reached · choose a higher performance profile');return false}
 function block(x,y,w,h,fixed,color){if(!room(1))return null;return part('box',x,y,{w:w||68,h:h||48,fixed:fixed,color:color||COLORS.orange,material:options.material})}
 function ball(x,y,r,color){if(!room(1))return null;return part('ball',x,y,{r:r||25,color:color||COLORS.aqua})}
+function springPad(x,y){if(!room(1))return null;return part('box',x,y,{w:118,h:26,fixed:true,color:'#32aa91',material:'rubber',springStrength:1.65})}
 function anchor(x,y){if(!room(1))return null;return part('anchor',x,y,{r:9,fixed:true,color:COLORS.violet})}
 function wheel(x,y,powered){if(!room(1))return null;return part('wheel',x,y,{r:27,color:COLORS.ink,material:'rubber',motor:!!powered})}
 function cart(x,y){if(!room(3))return null;var chassis=block(x,y-25,135,26,false,'#657c91'),left=wheel(x-47,y+6,true),right=wheel(x+47,y+6,true);if(!chassis||!left||!right)return null;[left,right].forEach(function(w){world.links.push({id:uid(),a:chassis.id,b:w.id,type:'hinge',len:0,k:.92,ax:w.x-chassis.x,ay:w.y-chassis.y,bx:0,by:0,breakable:false,strength:90})});return chassis}
@@ -55,11 +56,14 @@ function selectedResident(){var p=findPart(state.selected);return p&&p.group?fin
 function updateControlHint(){
  var label=$('controlHint');if(!label)return;
  var selected=selectedResident(),walker=null;
+ var paceButton=$('paceControl'),jumpButton=$('jumpBoostControl');
+ if(paceButton){var pace=selected?(selected.pace||state.pace):state.pace;paceButton.textContent=(pace==='sprint'?'Sprint':pace==='run'?'Run':'Walk');paceButton.setAttribute('aria-label','Movement pace: '+pace+' · tap to change');}
+ if(jumpButton){var boosted=selected?!!selected.jumpBoost:!!state.jumpBoost;jumpButton.textContent=boosted?'Jump: Boost':'Jump: Normal';jumpButton.setAttribute('aria-pressed',boosted?'true':'false');}
  for(var i=0;i<world.groups.length;i++){
   if(world.groups[i].ai&&world.groups[i].mode==='go'){walker=world.groups[i];break}
  }
  if(state.tool==='goto')label.textContent='📍 Tap where '+(selected?selected.name:'the figure')+' should walk';
- else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
+ else if(selected)label.textContent='Controlling: '+(selected.name||'Figure')+' · '+(state.pace||selected.pace||'walk')+(state.jumpBoost?' · boosted jump':'');
  else if(walker){
   var name=walker.name||'Figure';
   label.textContent=walker.intent==='waiting'?'🤝 '+name+' waiting for the carrying partner':
@@ -89,7 +93,7 @@ function updateResidents(){
 }
 function setLivingAI(on){world.aiEnabled=!!on;if(!world.aiEnabled)world.groups.forEach(function(g){releaseHelpingGrasp(g);releaseClimb(g);g.brain=null});updateResidents();return world.aiEnabled}
 function releaseResident(){var g=selectedResident();if(g)g.brain=null;state.selected=null;state.drag=null;updateResidents()}
-function chooseResident(id){var g=findGroup(id);if(!g)return false;releaseClimb(g);g.brain=null;state.selected=g.hip;state.drag=null;updateResidents();return true}
+function chooseResident(id){var g=findGroup(id);if(!g)return false;releaseClimb(g);g.brain=null;state.pace=g.pace||'walk';state.jumpBoost=!!g.jumpBoost;state.selected=g.hip;state.drag=null;updateResidents();return true}
 function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;if(mode!=='help')releaseHelpingGrasp(g);if(mode!=='go')releaseClimb(g);if(mode==='help')g.graspIgnoreTargetId=null;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.routePlan=null;g.brain=null;updateResidents();return true}
 function releaseFigureConnections(g,preserveGrasp){
  if(!g)return 0;
@@ -248,6 +252,7 @@ function motionParts(g){
 }
 function driveFigure(g,command){
  var parts=motionParts(g);if(!parts)return;
+ command=command||{};command.pace=command.pace||g.pace||'walk';command.jumpBoost=command.jumpBoost===undefined?!!g.jumpBoost:command.jumpBoost;
  var nearby=[];
  for(var i=0;i<world.parts.length&&nearby.length<20;i++){
   var p=world.parts[i];if(!p.group&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190&&
@@ -264,7 +269,7 @@ function ensureControlledFigure(){
   if(score<bestScore){best=g;bestScore=score}
  }
  if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
- releaseClimb(best);state.selected=best.hip;state.drag=null;state.pan=null;
+ releaseClimb(best);best.pace=state.pace||best.pace||'walk';best.jumpBoost=!!state.jumpBoost;state.selected=best.hip;state.drag=null;state.pan=null;
  var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
@@ -445,7 +450,10 @@ function collision(a,b){if(a.fixed&&b.fixed||a.group&&a.group===b.group||!Core.a
  var vn=(avx-bvx)*nx+(avy-bvy)*ny;
  var push=pen+0.05;a.x-=nx*push*wa/sum;a.y-=ny*push*wa/sum;b.x+=nx*push*wb/sum;b.y+=ny*push*wb/sum;
  if(vn>10){Machines.impact(a,vn);Machines.impact(b,vn)}
- if(vn>0){var impulse=(1+options.bounce)*vn;avx-=impulse*nx*wa/sum;avy-=impulse*ny*wa/sum;bvx+=impulse*nx*wb/sum;bvy+=impulse*ny*wb/sum}
+ if(vn>0){var restitution=options.bounce;
+  if(a.springStrength&&ny<-.25)restitution=Math.max(restitution,a.springStrength);
+  if(b.springStrength&&ny>.25)restitution=Math.max(restitution,b.springStrength);
+  var impulse=(1+restitution)*vn;avx-=impulse*nx*wa/sum;avy-=impulse*ny*wa/sum;bvx+=impulse*nx*wb/sum;bvy+=impulse*ny*wb/sum}
  a.px=a.x-avx*.991;a.py=a.y-avy*.991;b.px=b.x-bvx*.991;b.py=b.y-bvy*.991;
 }
 function boundary(p){if(p.fixed)return;var r=reach(p),rx=r.x,ry=r.y;
@@ -458,7 +466,7 @@ function boundary(p){if(p.fixed)return;var r=reach(p),rx=r.x,ry=r.y;
 }
 function playerInput(){
  var p=findPart(state.selected),g=p&&p.group?findGroup(p.group):null;if(!g)return;
- driveFigure(g,{direction:state.keys.left?-1:state.keys.right?1:0,jump:state.keys.jump});
+ driveFigure(g,{direction:state.keys.left?-1:state.keys.right?1:0,jump:state.keys.jump,pace:state.pace,jumpBoost:state.jumpBoost});
  state.keys.jump=false;
 }
 function residentInput(){
@@ -565,7 +573,7 @@ function drawLink(l){if(l.type==='brace')return;var a=findPart(l.a),b=findPart(l
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';if(l.graspOwner||l.climbOwner){var ownerId=l.graspOwner||l.climbOwner,start=a,end=b;if(l.type==='hinge'){var hand=a.group===ownerId?a:b,object=hand===a?b:a;start=hand===a?hingePoint(hand,l.ax,l.ay):hingePoint(hand,l.bx,l.by);end=hand===a?hingePoint(object,l.bx,l.by):hingePoint(object,l.ax,l.ay)}ctx.strokeStyle=COLORS.aqua;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();ctx.beginPath();ctx.arc((start.x+end.x)/2,(start.y+end.y)/2,4,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.restore();return;}if(l.type==='hinge'){var pa=hingePoint(a,l.ax,l.ay),pb=hingePoint(b,l.bx,l.by);ctx.beginPath();ctx.arc((pa.x+pb.x)/2,(pa.y+pb.y)/2,8,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=COLORS.violet;ctx.stroke();ctx.restore();return;}if(l.type==='bone'){ctx.strokeStyle='#273749';ctx.lineWidth=5.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
  else if(l.type==='rope'){ctx.strokeStyle='#947f6a';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([])}
  else if(l.type==='spring'){var dx=b.x-a.x,dy=b.y-a.y,n=Math.hypot(dx,dy)||1,nx=-dy/n,ny=dx/n;ctx.strokeStyle='#af7cbe';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.x,a.y);for(var i=1;i<12;i++){var t=i/12,off=(i%2?-1:1)*10;ctx.lineTo(a.x+dx*t+nx*off,a.y+dy*t+ny*off)}ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.restore()}
-function drawPart(p){ctx.save();if(p.kind==='box'){ctx.translate(p.x,p.y);ctx.rotate(p.angle||0);var x=-p.w/2,y=-p.h/2;ctx.fillStyle='#d2d7cf';roundedRect(x+4,y+7,p.w,p.h,5);ctx.fill();ctx.fillStyle=p.color;roundedRect(x,y,p.w,p.h,5);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#273749';ctx.stroke();ctx.strokeStyle='#fef9ef66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+11,y+10);ctx.lineTo(x+p.w-11,y+10);ctx.stroke();ctx.strokeStyle='#27374955';ctx.beginPath();ctx.moveTo(x+12,y+14);ctx.lineTo(x+p.w-12,y+p.h-12);ctx.moveTo(x+p.w-12,y+14);ctx.lineTo(x+12,y+p.h-12);ctx.stroke()}
+function drawPart(p){ctx.save();if(p.kind==='box'){ctx.translate(p.x,p.y);ctx.rotate(p.angle||0);var x=-p.w/2,y=-p.h/2;ctx.fillStyle=p.springStrength?'#b9e9db':'#d2d7cf';roundedRect(x+4,y+7,p.w,p.h,5);ctx.fill();ctx.fillStyle=p.color;roundedRect(x,y,p.w,p.h,5);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=p.springStrength?'#176c5a':'#273749';ctx.stroke();ctx.strokeStyle=p.springStrength?'#e7fff5':'#fef9ef66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+11,y+10);ctx.lineTo(x+p.w-11,y+10);ctx.stroke();if(p.springStrength){ctx.strokeStyle='#eafff8';ctx.lineWidth=3;for(var coil=x+15;coil<x+p.w-12;coil+=18){ctx.beginPath();ctx.moveTo(coil,y+p.h/2-2);ctx.lineTo(coil+5,y+3);ctx.lineTo(coil+10,y+p.h/2-2);ctx.stroke()}}else{ctx.strokeStyle='#27374955';ctx.beginPath();ctx.moveTo(x+12,y+14);ctx.lineTo(x+p.w-12,y+p.h-12);ctx.moveTo(x+p.w-12,y+14);ctx.lineTo(x+12,y+p.h-12);ctx.stroke()}}
  else if(p.kind==='ball'||p.kind==='wheel'){ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,2*Math.PI);ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#273749';ctx.stroke();ctx.beginPath();ctx.strokeStyle='#ffffff9a';ctx.lineWidth=3;ctx.arc(p.x-3,p.y-3,Math.max(2,p.r-8),3.3,4.5);ctx.stroke();if(p.kind==='wheel'){ctx.strokeStyle='#d9eee9';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+Math.cos(p.angle||0)*(p.r-4),p.y+Math.sin(p.angle||0)*(p.r-4));ctx.stroke();if(p.motor){ctx.fillStyle='#83e0cb';ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill()}}}
  else if(p.kind==='anchor'){ctx.fillStyle='#fffef9';ctx.strokeStyle=COLORS.violet;ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,p.r+5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(p.x-6,p.y);ctx.lineTo(p.x+6,p.y);ctx.moveTo(p.x,p.y-6);ctx.lineTo(p.x,p.y+6);ctx.stroke()}
  else if(p.kind==='joint'){if(p.r>=12){ctx.beginPath();ctx.fillStyle='#fffefa';ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.lineWidth=3.5;ctx.strokeStyle='#273749';ctx.stroke();ctx.fillStyle='#273749';ctx.beginPath();ctx.arc(p.x-3,p.y-1,1.7,0,2*Math.PI);ctx.arc(p.x+3,p.y-1,1.7,0,2*Math.PI);ctx.fill()}}
@@ -633,6 +641,7 @@ function pointerStart(id,cx,cy){var pos=worldPoint(cx,cy),p=hitTest(pos.x,pos.y)
  else if(state.tool==='motor'){if(p&&p.kind==='wheel'){pushHistory();if(!p.motor){p.motor=true;p.motorDirection=1;toast('Motor forward')}else if(p.motorDirection!==-1){p.motorDirection=-1;toast('Motor reverse')}else{p.motor=false;toast('Motor off')}}else toast('Tap a wheel to cycle forward, reverse and off')}
  else if(state.tool==='box'){pushHistory();block(pos.x,Math.min(pos.y,FLOOR-28),70,56,false,options.material==='steel'?'#7e9ca5':options.material==='rubber'?'#51a99f':COLORS.orange);updateCounts()}
  else if(state.tool==='ball'){pushHistory();ball(pos.x,Math.min(pos.y,FLOOR-25),25,COLORS.aqua);updateCounts()}
+ else if(state.tool==='springpad'){pushHistory();springPad(pos.x,Math.min(pos.y,FLOOR-13));updateCounts();toast('Spring Pad placed · physical bounce boost')}
  else if(state.tool==='anchor'){pushHistory();anchor(pos.x,pos.y);updateCounts()}
 }
 function pointerMove(id,cx,cy){var pos=worldPoint(cx,cy);state.pointerCoords=pos;if(state.drag&&state.drag.id===id){state.drag.target=pos;if(state.paused&&!state.drag.part.fixed){var p=state.drag.part,dx=pos.x-p.x,dy=pos.y-p.y;p.x+=dx;p.px+=dx;p.y+=dy;p.py+=dy}}else if(state.pan&&state.pan.id===id){cam.x=state.pan.x-(cx-state.pan.cx)/cam.z;cam.y=state.pan.y-(cy-state.pan.cy)/cam.z}}
@@ -711,6 +720,8 @@ function controls(){
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
  $('releaseControlMobile').onclick=releaseResident;
+ $('paceControl').onclick=function(){var order=['walk','run','sprint'],g=selectedResident();state.pace=order[(order.indexOf(state.pace)+1)%order.length];if(g)g.pace=state.pace;updateControlHint();toast('Movement pace · '+state.pace)};
+ $('jumpBoostControl').onclick=function(){state.jumpBoost=!state.jumpBoost;var g=selectedResident();if(g)g.jumpBoost=state.jumpBoost;updateControlHint();toast(state.jumpBoost?'Jump boost on · stronger grounded jumps':'Jump boost off')};
  $('dropObject').onclick=function(){var g=selectedResident();if(!dropHelpingObject(g))toast('Select a resident holding an object first')};
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};
@@ -740,5 +751,5 @@ function controls(){
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updateGameModes();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
+window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,pace:state.pace,jumpBoost:state.jumpBoost,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX,pace:g.pace||'walk',jumpBoost:!!g.jumpBoost}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
 })();

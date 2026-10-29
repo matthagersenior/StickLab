@@ -547,3 +547,21 @@ test('real Go Here actor stops at a tall static wall and keeps its requested goa
  assert.equal(g.lastJumpTick,undefined,'do not jump futilely into tall wall');
  assert.match(nodes.controlHint.textContent,/blocked|wall/i,'HUD should explain why the resident stopped');
 });
+
+test('pace and jump controls cycle visibly and apply to the selected figure',()=>{
+ const {api,nodes}=engine(true);api.createWorld('living');
+ const g=api.getResidents()[0];api.selectResident(g.id);
+ nodes.paceControl.onclick();assert.equal(api.getState().pace,'run');assert.equal(api.getResidents()[0].pace,'run');
+ nodes.paceControl.onclick();assert.equal(api.getResidents()[0].pace,'sprint');
+ nodes.jumpBoostControl.onclick();assert.equal(api.getState().jumpBoost,true);assert.equal(api.getResidents()[0].jumpBoost,true);
+ api.releaseResident();assert.equal(api.getState().selected,null);
+});
+test('Spring Pad tool places a fixed, serialized high-bounce platform',()=>{
+ const {api,nodes}=engine(true);api.createWorld('empty');api.setTool('springpad');
+ const e={pointerType:'touch',pointerId:12,clientX:410,clientY:360,preventDefault(){}};
+ nodes.canvas.listeners.pointerdown(e);nodes.canvas.listeners.pointerup(e);
+ const pad=api.getWorld().parts.find(p=>p.springStrength>0);
+ assert.ok(pad);assert.equal(pad.kind,'box');assert.equal(pad.fixed,true);assert.equal(pad.springStrength,1.65);
+ api.importScene({format:'StickLab',version:4,world:api.getWorld()});
+ assert.equal(api.getWorld().parts.find(p=>p.springStrength>0).springStrength,1.65);
+});

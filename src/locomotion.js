@@ -17,7 +17,7 @@ function isSupported(foot,terrain,floor){
  return false;
 }
 function nudgeX(p,amount){if(!p||p.fixed)return;p.px-=clamp(amount,1.2)}
-function nudgeY(p,amount){if(!p||p.fixed)return;p.py+=clamp(amount,8)}
+function nudgeY(p,amount,limit){if(!p||p.fixed)return;p.py+=clamp(amount,limit===undefined?8:limit)}
 function step(group,parts,command,terrain,floor,tick){
  command=command||{};parts=parts||{};
  var hip=parts.hip,chest=parts.chest,head=parts.head,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
@@ -50,8 +50,9 @@ function step(group,parts,command,terrain,floor,tick){
  }
  group.motionState=direction?'walking':'standing';
  if(!status.grounded)return status;
- var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3;
- nudgeX(hip,clamp((rate-forward)*.14,.34));
+ var pace=command.pace==='sprint'?2.25:command.pace==='run'?1.55:1;
+ var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3*pace;
+ nudgeX(hip,clamp((rate-forward)*.14,.34*pace));
  if(chest){
   // Keep upper body from folding over while at least one foot is supporting.
   var lean=clamp(hip.x-chest.x,18);
@@ -101,10 +102,12 @@ function step(group,parts,command,terrain,floor,tick){
    status.pushed=true;group.lastPushTick=tick||0;group.motionState='pushing';
  }
  if(command.jump&&tick-last>=48){
-  // Reaction is an impulse to body velocities, not a position teleport.
-  nudgeY(hip,6.7);nudgeY(chest,5.6);
-  feet.forEach(function(foot){nudgeY(foot,3.3)});
-  knees.forEach(function(knee){nudgeY(knee,3.8)});
+  // Reaction is an impulse to body velocities, not a position teleport. Boost
+  // mode strengthens the same jump, keeping the cooldown and grounded check.
+  var jumpPower=command.jumpBoost?1.55:1;
+  nudgeY(hip,6.7*jumpPower,jumpPower>1?11:8);nudgeY(chest,5.6*jumpPower,jumpPower>1?10:8);
+  feet.forEach(function(foot){nudgeY(foot,3.3*jumpPower,jumpPower>1?7:8)});
+  knees.forEach(function(knee){nudgeY(knee,3.8*jumpPower,jumpPower>1?8:8)});
   group.lastJumpTick=tick;status.jumped=true;
  }
  return status;

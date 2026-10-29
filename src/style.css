@@ -174,3 +174,8 @@
  .side:not(.open){pointer-events:none}
  .side.open{pointer-events:auto}
 }
+
+/* Pace and jump options in the persistent figure controller. */
+.controlpad .control-options{display:flex;flex-basis:100%;gap:5px}
+.controlpad .control-options button{flex:1;width:auto;min-width:0;height:34px;min-height:34px;padding:0 5px;font-size:11px;background:#315044dd;border-color:#83e0cb;color:#e1fff4;white-space:nowrap}
+.controlpad .control-options button[aria-pressed="true"]{background:#176c5a}

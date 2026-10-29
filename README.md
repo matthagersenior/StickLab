@@ -1,8 +1,8 @@
-# StickLab v0.5.16 — Visible movement controls
+# StickLab v0.5.17 — Pace, jump boost and spring pads
 
-**Movement controls now stay visible whenever a figure is present.** Tap a direction to steer the nearest figure without grabbing it; **Auto** returns a resident to its own behavior. Fallen figures now make stronger, repeated physical recovery efforts using braced hands and knees. Living World starts with more open lanes, and Walk asks residents to push loose props that block a direct route. [v0.5.16 control, recovery and world notes](docs/releases/v0.5.16-visible-controls.md) · [v0.5.15 team carry notes](docs/releases/v0.5.15-size-aware-team-carry.md).
+**Control how figures move:** the on-screen pace button cycles Walk, Run and Sprint; Jump: Boost strengthens grounded jumps. Place a fixed **Spring Pad** from the tool palette to physically launch anything that lands on it. These are velocity impulses and collisions, so gravity and obstacles still matter. [v0.5.17 movement upgrades](docs/releases/v0.5.17-pace-and-springpad.md) · [v0.5.16 visible controls](docs/releases/v0.5.16-visible-controls.md).
 
-Tap Grab again during an active Walk to stop movement immediately. Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
+Use the movement pad to switch between Walk, Run and Sprint, or toggle Jump: Boost. Spring Pads launch bodies through ordinary collision physics. Tap Grab again during an active Walk to stop movement immediately. Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
 
 Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenges clear stale figure controls and explain the paused state. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
 

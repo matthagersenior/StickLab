@@ -30,3 +30,11 @@ test('hinges preserve body angle and local anchors on v2 round trip',()=>{
  const out=core.normalizeScene({format:'StickLab',version:2,world:{parts:[box(1,0,0),{id:2,kind:'anchor',x:0,y:0,r:9,fixed:true}],links:[{id:3,a:1,b:2,type:'hinge',len:0,k:.9,ax:-20,ay:5,bx:0,by:0}],groups:[]}});
  assert.equal(out.world.links[0].ax,-20);assert.equal(out.world.parts[0].angle,0);
 });
+
+test('scene normalization preserves spring pads and validates their physics bounds',()=>{
+ const pad={id:1,kind:'box',x:250,y:300,w:118,h:26,fixed:true,color:'#32aa91',material:'rubber',springStrength:1.65};
+ const scene={format:'StickLab',version:4,world:{parts:[pad],links:[],groups:[]}};
+ assert.equal(core.normalizeScene(scene).world.parts[0].springStrength,1.65);
+ const bad=JSON.parse(JSON.stringify(scene));bad.world.parts[0].springStrength=4;assert.throws(()=>core.normalizeScene(bad));
+ const wrong=JSON.parse(JSON.stringify(scene));wrong.world.parts[0].kind='ball';delete wrong.world.parts[0].w;delete wrong.world.parts[0].h;wrong.world.parts[0].r=10;assert.throws(()=>core.normalizeScene(wrong));
+});

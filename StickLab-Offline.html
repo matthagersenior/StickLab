@@ -175,6 +175,11 @@
  .side:not(.open){pointer-events:none}
  .side.open{pointer-events:auto}
 }
+
+/* Pace and jump options in the persistent figure controller. */
+.controlpad .control-options{display:flex;flex-basis:100%;gap:5px}
+.controlpad .control-options button{flex:1;width:auto;min-width:0;height:34px;min-height:34px;padding:0 5px;font-size:11px;background:#315044dd;border-color:#83e0cb;color:#e1fff4;white-space:nowrap}
+.controlpad .control-options button[aria-pressed="true"]{background:#176c5a}
 </style></head>
 <body><div class="app">
 <aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll">
@@ -190,7 +195,7 @@
 <p id="gameModeStatus" class="game-mode-status" aria-live="polite">Now playing: Free Sandbox · No required objective</p>
 <div class="eyebrow">Create &amp; interact</div><p class="fineprint">Movement controls stay visible when figures are in the world. Tap an arrow to steer the nearest figure without grabbing it; tap <b>Auto</b> to return a resident to its own behavior. For a longer trip, tap <b>📍 Walk</b>, then tap a destination.</p><div class="tool-grid" id="toolGrid">
 <button class="tool active" data-tool="grab" aria-pressed="true"><span class="glyph">↖</span>Grab <kbd>1</kbd></button><button class="tool walk-tool" data-tool="goto" aria-pressed="false"><span class="glyph">📍</span>Walk</button><button class="tool" data-tool="figure" title="Physical stick figure that can be dragged, pushed, attached or walked"><span class="glyph">♙</span>Physics Figure <kbd>2</kbd></button><button class="tool" data-tool="living"><span class="glyph">☺</span>Resident</button>
-<button class="tool" data-tool="box"><span class="glyph">▣</span>Box <kbd>3</kbd></button><button class="tool" data-tool="ball"><span class="glyph">●</span>Ball <kbd>4</kbd></button>
+<button class="tool" data-tool="box"><span class="glyph">▣</span>Box <kbd>3</kbd></button><button class="tool" data-tool="springpad" title="Fixed physical pad that launches anything landing on it"><span class="glyph">↟</span>Spring Pad</button><button class="tool" data-tool="ball"><span class="glyph">●</span>Ball <kbd>4</kbd></button>
 <button class="tool" data-tool="anchor"><span class="glyph">⊕</span>Anchor <kbd>5</kbd></button><button class="tool" data-tool="rope"><span class="glyph">⌁</span>Rope <kbd>6</kbd></button>
 <button class="tool" data-tool="spring"><span class="glyph">〽</span>Spring <kbd>7</kbd></button><button class="tool" data-tool="hinge"><span class="glyph">⚙</span>Hinge <kbd>9</kbd></button><button class="tool" data-tool="detach"><span class="glyph">✂</span>Detach</button><button class="tool" data-tool="wheel"><span class="glyph">◉</span>Wheel</button><button class="tool" data-tool="cart"><span class="glyph">▰</span>Motor Cart</button><button class="tool" data-tool="motor"><span class="glyph">⚡</span>Motor</button><button class="tool" data-tool="erase"><span class="glyph">⌫</span>Erase <kbd>8</kbd></button></div>
 <div class="eyebrow">Living figures</div>
@@ -204,15 +209,15 @@
 <div class="eyebrow">Performance</div><select id="quality" aria-label="Performance profile"><option value="auto">Auto / adaptive</option><option value="eco">Eco / older devices</option><option value="standard">Standard</option><option value="high">High fidelity</option></select>
 <div class="eyebrow">World management</div><div class="togglebar"><button class="smallbtn" id="snapshotMenu">Save picture</button></div><label class="form-row" for="saveSlot">Save slot</label><select id="saveSlot" aria-label="Choose world save slot"><option value="1">Slot 1 (v0.1/v0.2 compatible)</option><option value="2">Slot 2</option><option value="3">Slot 3</option></select><div class="togglebar"><button class="smallbtn" id="save">Save</button><button class="smallbtn" id="load">Load</button><button class="smallbtn" id="export">Export</button></div><div class="togglebar"><button class="smallbtn" id="import">Import</button><button class="smallbtn" id="undo">Undo</button><button class="smallbtn" id="reset">Clear</button></div><input type="file" class="hidden" id="fileInput" accept=".json,application/json">
 <p class="fineprint">Tap to create. Build carts, motors, and breakable structures. Tap the movement arrows to steer the nearest figure without grabbing; Auto returns residents to their own behavior. Rope/spring/hinge: tap two objects. Detach: tap a connection or purple anchor to release it; Pin makes new fixed anchors anywhere. Residents explore, dodge hazards and help push or operate nearby objects. Walk assigns a longer destination. Drag the empty world to pan; pinch to zoom.</p>
-</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.16</span></footer></aside>
+</div><footer class="side-foot"><i class="dot"></i> OFFLINE READY <span style="margin-left:auto">v0.5.17</span></footer></aside>
 <main class="stage" id="stage"><canvas id="canvas" aria-label="Interactive physics sandbox world"></canvas>
 <div class="topbar"><div class="world-chip"><b id="worldTitle">The Playground</b><p id="subTitle">Everything is an experiment.</p></div><div class="top-actions"><button class="action iconbutton mobilemenu hidden" id="openMenu" aria-label="Open tools">☰</button><button class="action desktop" id="help">? Help</button><button class="action challenge-action" id="challengeAction" type="button" aria-label="Choose a game type">🎮 Games</button><button class="action desktop" id="snapshot" title="Save scene picture">◫ <span class="desktopword">Photo</span></button><button class="action" id="step" title="Advance one physics step">Step ·</button><button class="action main" id="pause">Ⅱ Pause</button></div></div>
 <div class="mission-objective hidden" id="missionObjective" role="status" aria-live="polite"></div>
 <div class="zoom" role="group" aria-label="Camera zoom and position"><button type="button" id="zoomIn" aria-label="Zoom in">+</button><button type="button" id="zoomOut" aria-label="Zoom out">−</button><button type="button" id="recenter" aria-label="Recenter camera" style="font-size:16px">⌖</button><span class="camera-feedback" id="cameraFeedback" aria-live="polite">100%</span></div>
 <div id="notice" class="notice" role="status" aria-live="polite"></div>
 <div class="status"><div class="hint" id="hint"><b>Grab &amp; play.</b> Drag objects, or choose a tool to create something.</div><div class="counter"><div>OBJECTS <span id="objectCount">0</span></div><div>FPS <span id="fps">60</span></div></div></div>
-<div class="controlpad" id="controlpad" role="group" aria-label="Figure movement controls"><span class="control-label" id="controlHint" role="status">Tap an arrow to steer the nearest figure</span><button type="button" data-hold="left" aria-label="Move nearest figure left">◀</button><button type="button" data-hold="jump" aria-label="Jump nearest figure">↑</button><button type="button" data-hold="right" aria-label="Move nearest figure right">▶</button><button type="button" id="releaseControlMobile" aria-label="Auto: return resident to its own behavior" title="Auto · return the resident to autonomous behavior">Auto</button></div>
-<div class="mobiletools" id="mobileTools"><button data-tool="grab" class="active"><em>↖</em>Grab</button><button data-tool="goto" aria-label="Walk to a point"><em>📍</em>Walk</button><button type="button" id="unhookMobile" aria-label="Unhook a stick figure from ropes" title="Free a figure from external ropes and hinges"><em>✂</em>Unhook</button><button data-tool="figure" aria-label="Add a physics stick figure" title="Place a physical stick figure"><em>♙</em>Physics</button><button data-tool="living"><em>☺</em>Resident</button><button data-tool="box"><em>▣</em>Box</button><button data-tool="ball"><em>●</em>Ball</button><button data-tool="anchor"><em>⊕</em>Pin</button><button data-tool="rope"><em>⌁</em>Rope</button><button data-tool="spring"><em>〽</em>Spring</button><button data-tool="hinge"><em>⚙</em>Hinge</button><button data-tool="detach"><em>✂</em>Detach</button><button data-tool="wheel"><em>◉</em>Wheel</button><button data-tool="cart"><em>▰</em>Cart</button><button data-tool="motor"><em>⚡</em>Motor</button><button data-tool="erase"><em>⌫</em>Erase</button></div>
+<div class="controlpad" id="controlpad" role="group" aria-label="Figure movement controls"><span class="control-label" id="controlHint" role="status">Tap an arrow to steer the nearest figure</span><button type="button" data-hold="left" aria-label="Move nearest figure left">◀</button><button type="button" data-hold="jump" aria-label="Jump nearest figure">↑</button><button type="button" data-hold="right" aria-label="Move nearest figure right">▶</button><button type="button" id="releaseControlMobile" aria-label="Auto: return resident to its own behavior" title="Auto · return the resident to autonomous behavior">Auto</button><div class="control-options"><button type="button" id="paceControl" aria-label="Change walking pace" title="Cycle walk, run and sprint">Walk</button><button type="button" id="jumpBoostControl" aria-label="Toggle stronger jump" title="Toggle stronger grounded jumps">Jump: Normal</button></div></div>
+<div class="mobiletools" id="mobileTools"><button data-tool="grab" class="active"><em>↖</em>Grab</button><button data-tool="goto" aria-label="Walk to a point"><em>📍</em>Walk</button><button type="button" id="unhookMobile" aria-label="Unhook a stick figure from ropes" title="Free a figure from external ropes and hinges"><em>✂</em>Unhook</button><button data-tool="figure" aria-label="Add a physics stick figure" title="Place a physical stick figure"><em>♙</em>Physics</button><button data-tool="living"><em>☺</em>Resident</button><button data-tool="box"><em>▣</em>Box</button><button data-tool="springpad" title="Place a bounce pad"><em>↟</em>Spring Pad</button><button data-tool="ball"><em>●</em>Ball</button><button data-tool="anchor"><em>⊕</em>Pin</button><button data-tool="rope"><em>⌁</em>Rope</button><button data-tool="spring"><em>〽</em>Spring</button><button data-tool="hinge"><em>⚙</em>Hinge</button><button data-tool="detach"><em>✂</em>Detach</button><button data-tool="wheel"><em>◉</em>Wheel</button><button data-tool="cart"><em>▰</em>Cart</button><button data-tool="motor"><em>⚡</em>Motor</button><button data-tool="erase"><em>⌫</em>Erase</button></div>
 <section id="puzzlePicker" class="puzzle-picker hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="puzzlePickerTitle">
 <div class="puzzle-picker-panel">
 <div class="puzzle-picker-top">
@@ -266,10 +271,12 @@ function normalizeScene(input){
   if(!p||!integer(p.id)||taken[p.id]||['joint','box','ball','anchor','wheel'].indexOf(p.kind)<0||!finite(p.x)||!finite(p.y)||Math.abs(p.x)>5000||Math.abs(p.y)>5000)throw Error('Invalid body');
   if(p.px!==undefined&&!finite(p.px)||p.py!==undefined&&!finite(p.py)||p.angle!==undefined&&!finite(p.angle)||p.pa!==undefined&&!finite(p.pa))throw Error('Invalid body motion');
   if(p.kind==='box'&&(!finite(p.w)||!finite(p.h)||p.w<5||p.h<5||p.w>300||p.h>300)||p.kind!=='box'&&(!finite(p.r)||p.r<1||p.r>100))throw Error('Invalid body geometry');
-  if((p.motorPower!==undefined&&(!finite(p.motorPower)||p.motorPower<.2||p.motorPower>2))||(p.hp!==undefined&&(!finite(p.hp)||p.hp<0||p.hp>10000))|| (p.material!==undefined&&['wood','steel','rubber'].indexOf(p.material)<0))throw Error('Invalid material or wheel state');
+  if((p.springStrength!==undefined&&(!finite(p.springStrength)||p.springStrength<1.1||p.springStrength>2.2||p.kind!=='box'))||(p.motorPower!==undefined&&(!finite(p.motorPower)||p.motorPower<.2||p.motorPower>2))||(p.hp!==undefined&&(!finite(p.hp)||p.hp<0||p.hp>10000))|| (p.material!==undefined&&['wood','steel','rubber'].indexOf(p.material)<0))throw Error('Invalid material or wheel state');
   if(p.angle!==undefined&&Math.abs(p.angle)>100000||p.pa!==undefined&&Math.abs(p.pa)>100000)throw Error('Invalid rotation');
   ids[p.id]=p;taken[p.id]=1;maxId=Math.max(maxId,p.id);
-  return {id:p.id,kind:p.kind,x:p.x,y:p.y,px:p.px===undefined?p.x:p.px,py:p.py===undefined?p.y:p.py,w:p.kind==='box'?p.w:0,h:p.kind==='box'?p.h:0,r:p.kind==='box'?0:p.r,angle:p.angle||0,pa:p.pa===undefined?(p.angle||0):p.pa,fixed:!!p.fixed,group:p.group||null,color:typeof p.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#182a3b',material:p.material||'wood',hp:p.hp===undefined?(p.material==='steel'?240:90):p.hp,motor:p.kind==='wheel'&&!!p.motor,motorDirection:p.motorDirection===-1?-1:1,motorPower:p.motorPower||1};
+  var normalizedPart={id:p.id,kind:p.kind,x:p.x,y:p.y,px:p.px===undefined?p.x:p.px,py:p.py===undefined?p.y:p.py,w:p.kind==='box'?p.w:0,h:p.kind==='box'?p.h:0,r:p.kind==='box'?0:p.r,angle:p.angle||0,pa:p.pa===undefined?(p.angle||0):p.pa,fixed:!!p.fixed,group:p.group||null,color:typeof p.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(p.color)?p.color:'#182a3b',material:p.material||'wood',hp:p.hp===undefined?(p.material==='steel'?240:90):p.hp,motor:p.kind==='wheel'&&!!p.motor,motorDirection:p.motorDirection===-1?-1:1,motorPower:p.motorPower||1};
+  if(p.kind==='box'&&p.springStrength)normalizedPart.springStrength=p.springStrength;
+  return normalizedPart;
  });
  var links=world.links.map(function(l){
   if(!l||!integer(l.id)||taken[l.id]||!ids[l.a]||!ids[l.b]||l.a===l.b||['bone','brace','rope','spring','hinge'].indexOf(l.type)<0||!finite(l.len)||l.len<0||l.len>10000)throw Error('Invalid link');
@@ -286,13 +293,14 @@ function normalizeScene(input){
   if(!g||typeof g.id!=='string'||!/^f[0-9]+$/.test(g.id)||!Array.isArray(g.nodes)||!g.nodes.length||g.nodes.length>30||!integer(g.hip)||!integer(g.head)||g.nodes.indexOf(g.hip)<0||g.nodes.indexOf(g.head)<0)throw Error('Invalid ragdoll group');
   var visited={};g.nodes.forEach(function(id){if(visited[id]||!ids[id]||ids[id].group!==g.id)throw Error('Invalid ragdoll node');visited[id]=1});
   if(g.ai!==undefined&&typeof g.ai!=='boolean')throw Error('Invalid agent activation');
+  if(g.pace!==undefined&&['walk','run','sprint'].indexOf(g.pace)<0||g.jumpBoost!==undefined&&typeof g.jumpBoost!=='boolean')throw Error('Invalid movement upgrade');
   if(g.name!==undefined&&(typeof g.name!=='string'||g.name.length>32||!/^[A-Za-z][A-Za-z0-9 _-]*$/.test(g.name)))throw Error('Invalid agent name');
   if(g.mode!==undefined&&['wander','help','rest','go'].indexOf(g.mode)<0)throw Error('Invalid agent behavior');
   if(g.personality!==undefined&&['curious','cautious','helpful'].indexOf(g.personality)<0)throw Error('Invalid personality');
   if(g.targetX!==undefined&&g.targetX!==null&&(!finite(g.targetX)||g.targetX<0||g.targetX>2200))throw Error('Invalid movement target');
   var mem=g.memory||{hazards:0,lastHazardX:null,interactions:0};
   if(typeof mem!=='object'||Array.isArray(mem)||!(finite(mem.hazards)&&Math.floor(mem.hazards)===mem.hazards)||mem.hazards<0||mem.hazards>99||!(finite(mem.interactions)&&Math.floor(mem.interactions)===mem.interactions)||mem.interactions<0||mem.interactions>99||(mem.lastHazardX!==null&&(!finite(mem.lastHazardX)||Math.abs(mem.lastHazardX)>5000)))throw Error('Invalid agent memory');
-  var normalized={id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',targetX:g.targetX===undefined?null:g.targetX,memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
+  var normalized={id:g.id,nodes:g.nodes.slice(),hip:g.hip,head:g.head,alive:true,ai:!!g.ai,name:g.name||('Stick '+g.id.slice(1)),personality:g.personality||'curious',mode:g.mode||'wander',pace:g.pace||'walk',jumpBoost:!!g.jumpBoost,targetX:g.targetX===undefined?null:g.targetX,memory:{hazards:mem.hazards,lastHazardX:mem.lastHazardX,interactions:mem.interactions}};
   if(g.graspIgnoreTargetId!==undefined&&g.graspIgnoreTargetId!==null){var ignored=ids[g.graspIgnoreTargetId];var eligible=ignored&&!ignored.group&&!ignored.fixed&&((ignored.kind==='ball'&&ignored.r>12&&ignored.r<=42)||(ignored.kind==='box'&&ignored.w<=72&&ignored.h<=72&&ignored.w*ignored.h<=4200));if(!integer(g.graspIgnoreTargetId)||!eligible)throw Error('Invalid ignored grasp target');normalized.graspIgnoreTargetId=g.graspIgnoreTargetId}
   return normalized;
 
@@ -600,7 +608,7 @@ function isSupported(foot,terrain,floor){
  return false;
 }
 function nudgeX(p,amount){if(!p||p.fixed)return;p.px-=clamp(amount,1.2)}
-function nudgeY(p,amount){if(!p||p.fixed)return;p.py+=clamp(amount,8)}
+function nudgeY(p,amount,limit){if(!p||p.fixed)return;p.py+=clamp(amount,limit===undefined?8:limit)}
 function step(group,parts,command,terrain,floor,tick){
  command=command||{};parts=parts||{};
  var hip=parts.hip,chest=parts.chest,head=parts.head,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
@@ -633,8 +641,9 @@ function step(group,parts,command,terrain,floor,tick){
  }
  group.motionState=direction?'walking':'standing';
  if(!status.grounded)return status;
- var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3;
- nudgeX(hip,clamp((rate-forward)*.14,.34));
+ var pace=command.pace==='sprint'?2.25:command.pace==='run'?1.55:1;
+ var forward=hip.x-hip.px,rate=direction===0?0:direction*2.3*pace;
+ nudgeX(hip,clamp((rate-forward)*.14,.34*pace));
  if(chest){
   // Keep upper body from folding over while at least one foot is supporting.
   var lean=clamp(hip.x-chest.x,18);
@@ -684,10 +693,12 @@ function step(group,parts,command,terrain,floor,tick){
    status.pushed=true;group.lastPushTick=tick||0;group.motionState='pushing';
  }
  if(command.jump&&tick-last>=48){
-  // Reaction is an impulse to body velocities, not a position teleport.
-  nudgeY(hip,6.7);nudgeY(chest,5.6);
-  feet.forEach(function(foot){nudgeY(foot,3.3)});
-  knees.forEach(function(knee){nudgeY(knee,3.8)});
+  // Reaction is an impulse to body velocities, not a position teleport. Boost
+  // mode strengthens the same jump, keeping the cooldown and grounded check.
+  var jumpPower=command.jumpBoost?1.55:1;
+  nudgeY(hip,6.7*jumpPower,jumpPower>1?11:8);nudgeY(chest,5.6*jumpPower,jumpPower>1?10:8);
+  feet.forEach(function(foot){nudgeY(foot,3.3*jumpPower,jumpPower>1?7:8)});
+  knees.forEach(function(knee){nudgeY(knee,3.8*jumpPower,jumpPower>1?8:8)});
   group.lastJumpTick=tick;status.jumped=true;
  }
  return status;
@@ -722,22 +733,23 @@ var GAME_MODES=[
 ];
 try{unlocked=Math.max(1,Math.min(Levels.levels.length,parseInt(localStorage.getItem('sticklab_challenge_unlocks_v03'),10)||1))}catch(e){}
 var cam={x:900,y:660,z:1};var width=700,height=500,dpr=1;
-var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null};
+var state={linkPoint:null,collisionCandidates:0,tick:0,tool:'grab',paused:false,selected:null,linkStart:null,drag:null,pan:null,keys:{left:false,right:false,jump:false},lastJump:0,lastFrame:0,acc:0,fps:60,frames:0,fpsTime:0,noticeTimer:0,undo:[],pointerCoords:null,pace:'walk',jumpBoost:false};
 var COLORS={ink:'#182a3b',aqua:'#209f94',pink:'#e7887c',orange:'#e9a466',violet:'#8576b9',gray:'#8396a3'};
-var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination to plan across low barriers. Residents can attempt a physical grip-and-pull over narrow ledges; tall walls, routes around obstacles, and carrying while climbing remain unsupported. Held objects travel with the resident; shared holders move as a team. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
+var toolHints={grab:'<b>Grab & play.</b> Drag objects to move them. Drag empty space to pan.',figure:'<b>Figure.</b> Tap anywhere to drop a passive physics ragdoll.',goto:'<b>Walk.</b> Tap a destination to plan across low barriers. Residents can attempt a physical grip-and-pull over narrow ledges; tall walls, routes around obstacles, and carrying while climbing remain unsupported. Held objects travel with the resident; shared holders move as a team. Press Grab to cancel.',living:'<b>Living figure.</b> Place an independent resident that wanders, notices danger, and can help experiments.',box:'<b>Box.</b> Tap to place a solid, stackable crate.',springpad:'<b>Spring Pad.</b> Place a fixed bounce platform; anything that lands on it can rebound much higher.',ball:'<b>Ball.</b> Tap to create a bouncy physics ball.',anchor:'<b>Anchor.</b> Tap to place a fixed connection point.',rope:'<b>Rope.</b> Tap one object, then another to connect them.',spring:'<b>Spring.</b> Tap two objects to make a stretchy link.',hinge:'<b>Hinge.</b> Tap two bodies to attach a rotating joint.',detach:'<b>Detach.</b> Tap any rope, spring or hinge to remove just that connection. Tap a purple anchor to release all its ropes, springs and hinges without deleting it.',wheel:'<b>Wheel.</b> Place a rolling circular wheel.',cart:'<b>Motor Cart.</b> Spawn a two-wheel powered vehicle.',motor:'<b>Motor.</b> Tap a wheel to cycle forward, reverse, or off.',erase:'<b>Erase.</b> Tap an object to remove it.'};
 function toast(s){var n=$('notice');n.textContent=s;n.classList.add('show');clearTimeout(state.noticeTimer);state.noticeTimer=setTimeout(function(){n.classList.remove('show')},1900)}
 function uid(){return world.next++}
-function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
+function part(kind,x,y,opts){opts=opts||{};var p={id:uid(),kind:kind,x:x,y:y,px:x,py:y,w:opts.w||0,h:opts.h||0,r:opts.r||0,angle:0,pa:0,fixed:!!opts.fixed,group:opts.group||null,color:opts.color||COLORS.ink,material:opts.material||'wood',hp:opts.hp||Machines.materialHealth(opts.material||'wood'),motor:!!opts.motor,motorDirection:1,motorPower:1};if(opts.springStrength)p.springStrength=opts.springStrength;setMass(p);world.parts.push(p);partIndex[p.id]=p;return p}
 function setMass(p){p.inv=p.fixed?0:1/(p.kind==='box'?Math.max(8,(p.w*p.h)/125):Math.max(3,p.r*p.r/50));p.iin=p.kind==='box'&&!p.fixed?12*p.inv/(p.w*p.w+p.h*p.h):0}
 function link(a,b,type,length,stiffness){if(!a||!b||a.id===b.id)return null;var l={id:uid(),a:a.id,b:b.id,type:type,len:length==null?Math.hypot(a.x-b.x,a.y-b.y):length,k:stiffness==null?1:stiffness,breakable:type==='rope'||type==='spring',strength:type==='rope'?85:110};world.links.push(l);return l}
 function figure(x,y,living){if(!room(14))return null;var group='f'+uid();var defs={head:[0,-79,13],neck:[0,-55,4],chest:[0,-33,6],hip:[0,2,6],ls:[-16,-47,5],rs:[16,-47,5],le:[-27,-22,4],re:[27,-22,4],lh:[-30,5,5],rh:[30,5,5],lk:[-13,38,5],rk:[13,38,5],lf:[-17,76,6],rf:[17,76,6]};var nodes={};Object.keys(defs).forEach(function(k){var v=defs[k];nodes[k]=part('joint',x+v[0],y+v[1],{r:v[2],group:group,color:COLORS.ink})});
  var bones=[['head','neck'],['neck','chest'],['chest','hip'],['chest','ls'],['chest','rs'],['ls','le'],['rs','re'],['le','lh'],['re','rh'],['hip','lk'],['hip','rk'],['lk','lf'],['rk','rf'],['ls','rs'],['chest','lk'],['chest','rk'],['ls','hip'],['rs','hip']];bones.forEach(function(pair,i){link(nodes[pair[0]],nodes[pair[1]],i<13?'bone':'brace',null,.88)});var serial=parseInt(group.slice(1),10)||0,names=['Pip','Nova','Rook','Echo','Dot','Moss','June','Spar'],traits=['curious','cautious','helpful'];
- world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true,ai:!!living,name:names[serial%names.length]+' '+serial,personality:traits[serial%3],mode:living?'wander':'rest',memory:{hazards:0,lastHazardX:null,interactions:0}});return nodes.hip}
+ world.groups.push({id:group,nodes:Object.keys(nodes).map(function(k){return nodes[k].id}),hip:nodes.hip.id,head:nodes.head.id,alive:true,ai:!!living,name:names[serial%names.length]+' '+serial,personality:traits[serial%3],mode:living?'wander':'rest',pace:'walk',jumpBoost:false,memory:{hazards:0,lastHazardX:null,interactions:0}});return nodes.hip}
 function resident(x,y){return figure(x,y,true)}
 function countEntities(){return world.parts.filter(function(p){return !p.group}).length+world.groups.length}
 function room(n){if(world.parts.length+n<=limits[profile].objects)return true;toast('Object limit reached · choose a higher performance profile');return false}
 function block(x,y,w,h,fixed,color){if(!room(1))return null;return part('box',x,y,{w:w||68,h:h||48,fixed:fixed,color:color||COLORS.orange,material:options.material})}
 function ball(x,y,r,color){if(!room(1))return null;return part('ball',x,y,{r:r||25,color:color||COLORS.aqua})}
+function springPad(x,y){if(!room(1))return null;return part('box',x,y,{w:118,h:26,fixed:true,color:'#32aa91',material:'rubber',springStrength:1.65})}
 function anchor(x,y){if(!room(1))return null;return part('anchor',x,y,{r:9,fixed:true,color:COLORS.violet})}
 function wheel(x,y,powered){if(!room(1))return null;return part('wheel',x,y,{r:27,color:COLORS.ink,material:'rubber',motor:!!powered})}
 function cart(x,y){if(!room(3))return null;var chassis=block(x,y-25,135,26,false,'#657c91'),left=wheel(x-47,y+6,true),right=wheel(x+47,y+6,true);if(!chassis||!left||!right)return null;[left,right].forEach(function(w){world.links.push({id:uid(),a:chassis.id,b:w.id,type:'hinge',len:0,k:.92,ax:w.x-chassis.x,ay:w.y-chassis.y,bx:0,by:0,breakable:false,strength:90})});return chassis}
@@ -753,11 +765,14 @@ function selectedResident(){var p=findPart(state.selected);return p&&p.group?fin
 function updateControlHint(){
  var label=$('controlHint');if(!label)return;
  var selected=selectedResident(),walker=null;
+ var paceButton=$('paceControl'),jumpButton=$('jumpBoostControl');
+ if(paceButton){var pace=selected?(selected.pace||state.pace):state.pace;paceButton.textContent=(pace==='sprint'?'Sprint':pace==='run'?'Run':'Walk');paceButton.setAttribute('aria-label','Movement pace: '+pace+' · tap to change');}
+ if(jumpButton){var boosted=selected?!!selected.jumpBoost:!!state.jumpBoost;jumpButton.textContent=boosted?'Jump: Boost':'Jump: Normal';jumpButton.setAttribute('aria-pressed',boosted?'true':'false');}
  for(var i=0;i<world.groups.length;i++){
   if(world.groups[i].ai&&world.groups[i].mode==='go'){walker=world.groups[i];break}
  }
  if(state.tool==='goto')label.textContent='📍 Tap where '+(selected?selected.name:'the figure')+' should walk';
- else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
+ else if(selected)label.textContent='Controlling: '+(selected.name||'Figure')+' · '+(state.pace||selected.pace||'walk')+(state.jumpBoost?' · boosted jump':'');
  else if(walker){
   var name=walker.name||'Figure';
   label.textContent=walker.intent==='waiting'?'🤝 '+name+' waiting for the carrying partner':
@@ -787,7 +802,7 @@ function updateResidents(){
 }
 function setLivingAI(on){world.aiEnabled=!!on;if(!world.aiEnabled)world.groups.forEach(function(g){releaseHelpingGrasp(g);releaseClimb(g);g.brain=null});updateResidents();return world.aiEnabled}
 function releaseResident(){var g=selectedResident();if(g)g.brain=null;state.selected=null;state.drag=null;updateResidents()}
-function chooseResident(id){var g=findGroup(id);if(!g)return false;releaseClimb(g);g.brain=null;state.selected=g.hip;state.drag=null;updateResidents();return true}
+function chooseResident(id){var g=findGroup(id);if(!g)return false;releaseClimb(g);g.brain=null;state.pace=g.pace||'walk';state.jumpBoost=!!g.jumpBoost;state.selected=g.hip;state.drag=null;updateResidents();return true}
 function changeResidentMode(id,mode){var g=findGroup(id);if(!g||!g.ai||Brain.modes.indexOf(mode)<0||(mode==='go'&&typeof g.targetX!=='number'))return false;if(mode!=='help')releaseHelpingGrasp(g);if(mode!=='go')releaseClimb(g);if(mode==='help')g.graspIgnoreTargetId=null;g.mode=mode;g.intent=mode;if(mode!=='go')g.targetX=null;g.navigation=null;g.routePlan=null;g.brain=null;updateResidents();return true}
 function releaseFigureConnections(g,preserveGrasp){
  if(!g)return 0;
@@ -946,6 +961,7 @@ function motionParts(g){
 }
 function driveFigure(g,command){
  var parts=motionParts(g);if(!parts)return;
+ command=command||{};command.pace=command.pace||g.pace||'walk';command.jumpBoost=command.jumpBoost===undefined?!!g.jumpBoost:command.jumpBoost;
  var nearby=[];
  for(var i=0;i<world.parts.length&&nearby.length<20;i++){
   var p=world.parts[i];if(!p.group&&Math.abs(p.x-parts.hip.x)<180&&Math.abs(p.y-parts.hip.y)<190&&
@@ -962,7 +978,7 @@ function ensureControlledFigure(){
   if(score<bestScore){best=g;bestScore=score}
  }
  if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
- releaseClimb(best);state.selected=best.hip;state.drag=null;state.pan=null;
+ releaseClimb(best);best.pace=state.pace||best.pace||'walk';best.jumpBoost=!!state.jumpBoost;state.selected=best.hip;state.drag=null;state.pan=null;
  var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
@@ -1143,7 +1159,10 @@ function collision(a,b){if(a.fixed&&b.fixed||a.group&&a.group===b.group||!Core.a
  var vn=(avx-bvx)*nx+(avy-bvy)*ny;
  var push=pen+0.05;a.x-=nx*push*wa/sum;a.y-=ny*push*wa/sum;b.x+=nx*push*wb/sum;b.y+=ny*push*wb/sum;
  if(vn>10){Machines.impact(a,vn);Machines.impact(b,vn)}
- if(vn>0){var impulse=(1+options.bounce)*vn;avx-=impulse*nx*wa/sum;avy-=impulse*ny*wa/sum;bvx+=impulse*nx*wb/sum;bvy+=impulse*ny*wb/sum}
+ if(vn>0){var restitution=options.bounce;
+  if(a.springStrength&&ny<-.25)restitution=Math.max(restitution,a.springStrength);
+  if(b.springStrength&&ny>.25)restitution=Math.max(restitution,b.springStrength);
+  var impulse=(1+restitution)*vn;avx-=impulse*nx*wa/sum;avy-=impulse*ny*wa/sum;bvx+=impulse*nx*wb/sum;bvy+=impulse*ny*wb/sum}
  a.px=a.x-avx*.991;a.py=a.y-avy*.991;b.px=b.x-bvx*.991;b.py=b.y-bvy*.991;
 }
 function boundary(p){if(p.fixed)return;var r=reach(p),rx=r.x,ry=r.y;
@@ -1156,7 +1175,7 @@ function boundary(p){if(p.fixed)return;var r=reach(p),rx=r.x,ry=r.y;
 }
 function playerInput(){
  var p=findPart(state.selected),g=p&&p.group?findGroup(p.group):null;if(!g)return;
- driveFigure(g,{direction:state.keys.left?-1:state.keys.right?1:0,jump:state.keys.jump});
+ driveFigure(g,{direction:state.keys.left?-1:state.keys.right?1:0,jump:state.keys.jump,pace:state.pace,jumpBoost:state.jumpBoost});
  state.keys.jump=false;
 }
 function residentInput(){
@@ -1263,7 +1282,7 @@ function drawLink(l){if(l.type==='brace')return;var a=findPart(l.a),b=findPart(l
  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';if(l.graspOwner||l.climbOwner){var ownerId=l.graspOwner||l.climbOwner,start=a,end=b;if(l.type==='hinge'){var hand=a.group===ownerId?a:b,object=hand===a?b:a;start=hand===a?hingePoint(hand,l.ax,l.ay):hingePoint(hand,l.bx,l.by);end=hand===a?hingePoint(object,l.bx,l.by):hingePoint(object,l.ax,l.ay)}ctx.strokeStyle=COLORS.aqua;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(start.x,start.y);ctx.lineTo(end.x,end.y);ctx.stroke();ctx.beginPath();ctx.arc((start.x+end.x)/2,(start.y+end.y)/2,4,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.restore();return;}if(l.type==='hinge'){var pa=hingePoint(a,l.ax,l.ay),pb=hingePoint(b,l.bx,l.by);ctx.beginPath();ctx.arc((pa.x+pb.x)/2,(pa.y+pb.y)/2,8,0,Math.PI*2);ctx.fillStyle='#fffefa';ctx.fill();ctx.lineWidth=3;ctx.strokeStyle=COLORS.violet;ctx.stroke();ctx.restore();return;}if(l.type==='bone'){ctx.strokeStyle='#273749';ctx.lineWidth=5.6;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}
  else if(l.type==='rope'){ctx.strokeStyle='#947f6a';ctx.lineWidth=3;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([])}
  else if(l.type==='spring'){var dx=b.x-a.x,dy=b.y-a.y,n=Math.hypot(dx,dy)||1,nx=-dy/n,ny=dx/n;ctx.strokeStyle='#af7cbe';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(a.x,a.y);for(var i=1;i<12;i++){var t=i/12,off=(i%2?-1:1)*10;ctx.lineTo(a.x+dx*t+nx*off,a.y+dy*t+ny*off)}ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.restore()}
-function drawPart(p){ctx.save();if(p.kind==='box'){ctx.translate(p.x,p.y);ctx.rotate(p.angle||0);var x=-p.w/2,y=-p.h/2;ctx.fillStyle='#d2d7cf';roundedRect(x+4,y+7,p.w,p.h,5);ctx.fill();ctx.fillStyle=p.color;roundedRect(x,y,p.w,p.h,5);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle='#273749';ctx.stroke();ctx.strokeStyle='#fef9ef66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+11,y+10);ctx.lineTo(x+p.w-11,y+10);ctx.stroke();ctx.strokeStyle='#27374955';ctx.beginPath();ctx.moveTo(x+12,y+14);ctx.lineTo(x+p.w-12,y+p.h-12);ctx.moveTo(x+p.w-12,y+14);ctx.lineTo(x+12,y+p.h-12);ctx.stroke()}
+function drawPart(p){ctx.save();if(p.kind==='box'){ctx.translate(p.x,p.y);ctx.rotate(p.angle||0);var x=-p.w/2,y=-p.h/2;ctx.fillStyle=p.springStrength?'#b9e9db':'#d2d7cf';roundedRect(x+4,y+7,p.w,p.h,5);ctx.fill();ctx.fillStyle=p.color;roundedRect(x,y,p.w,p.h,5);ctx.fill();ctx.lineWidth=2.5;ctx.strokeStyle=p.springStrength?'#176c5a':'#273749';ctx.stroke();ctx.strokeStyle=p.springStrength?'#e7fff5':'#fef9ef66';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+11,y+10);ctx.lineTo(x+p.w-11,y+10);ctx.stroke();if(p.springStrength){ctx.strokeStyle='#eafff8';ctx.lineWidth=3;for(var coil=x+15;coil<x+p.w-12;coil+=18){ctx.beginPath();ctx.moveTo(coil,y+p.h/2-2);ctx.lineTo(coil+5,y+3);ctx.lineTo(coil+10,y+p.h/2-2);ctx.stroke()}}else{ctx.strokeStyle='#27374955';ctx.beginPath();ctx.moveTo(x+12,y+14);ctx.lineTo(x+p.w-12,y+p.h-12);ctx.moveTo(x+p.w-12,y+14);ctx.lineTo(x+12,y+p.h-12);ctx.stroke()}}
  else if(p.kind==='ball'||p.kind==='wheel'){ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,2*Math.PI);ctx.fill();ctx.lineWidth=3;ctx.strokeStyle='#273749';ctx.stroke();ctx.beginPath();ctx.strokeStyle='#ffffff9a';ctx.lineWidth=3;ctx.arc(p.x-3,p.y-3,Math.max(2,p.r-8),3.3,4.5);ctx.stroke();if(p.kind==='wheel'){ctx.strokeStyle='#d9eee9';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+Math.cos(p.angle||0)*(p.r-4),p.y+Math.sin(p.angle||0)*(p.r-4));ctx.stroke();if(p.motor){ctx.fillStyle='#83e0cb';ctx.beginPath();ctx.arc(p.x,p.y,5,0,Math.PI*2);ctx.fill()}}}
  else if(p.kind==='anchor'){ctx.fillStyle='#fffef9';ctx.strokeStyle=COLORS.violet;ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,p.r+5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.beginPath();ctx.moveTo(p.x-6,p.y);ctx.lineTo(p.x+6,p.y);ctx.moveTo(p.x,p.y-6);ctx.lineTo(p.x,p.y+6);ctx.stroke()}
  else if(p.kind==='joint'){if(p.r>=12){ctx.beginPath();ctx.fillStyle='#fffefa';ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.lineWidth=3.5;ctx.strokeStyle='#273749';ctx.stroke();ctx.fillStyle='#273749';ctx.beginPath();ctx.arc(p.x-3,p.y-1,1.7,0,2*Math.PI);ctx.arc(p.x+3,p.y-1,1.7,0,2*Math.PI);ctx.fill()}}
@@ -1331,6 +1350,7 @@ function pointerStart(id,cx,cy){var pos=worldPoint(cx,cy),p=hitTest(pos.x,pos.y)
  else if(state.tool==='motor'){if(p&&p.kind==='wheel'){pushHistory();if(!p.motor){p.motor=true;p.motorDirection=1;toast('Motor forward')}else if(p.motorDirection!==-1){p.motorDirection=-1;toast('Motor reverse')}else{p.motor=false;toast('Motor off')}}else toast('Tap a wheel to cycle forward, reverse and off')}
  else if(state.tool==='box'){pushHistory();block(pos.x,Math.min(pos.y,FLOOR-28),70,56,false,options.material==='steel'?'#7e9ca5':options.material==='rubber'?'#51a99f':COLORS.orange);updateCounts()}
  else if(state.tool==='ball'){pushHistory();ball(pos.x,Math.min(pos.y,FLOOR-25),25,COLORS.aqua);updateCounts()}
+ else if(state.tool==='springpad'){pushHistory();springPad(pos.x,Math.min(pos.y,FLOOR-13));updateCounts();toast('Spring Pad placed · physical bounce boost')}
  else if(state.tool==='anchor'){pushHistory();anchor(pos.x,pos.y);updateCounts()}
 }
 function pointerMove(id,cx,cy){var pos=worldPoint(cx,cy);state.pointerCoords=pos;if(state.drag&&state.drag.id===id){state.drag.target=pos;if(state.paused&&!state.drag.part.fixed){var p=state.drag.part,dx=pos.x-p.x,dy=pos.y-p.y;p.x+=dx;p.px+=dx;p.y+=dy;p.py+=dy}}else if(state.pan&&state.pan.id===id){cam.x=state.pan.x-(cx-state.pan.cx)/cam.z;cam.y=state.pan.y-(cy-state.pan.cy)/cam.z}}
@@ -1409,6 +1429,8 @@ function controls(){
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
  $('releaseControlMobile').onclick=releaseResident;
+ $('paceControl').onclick=function(){var order=['walk','run','sprint'],g=selectedResident();state.pace=order[(order.indexOf(state.pace)+1)%order.length];if(g)g.pace=state.pace;updateControlHint();toast('Movement pace · '+state.pace)};
+ $('jumpBoostControl').onclick=function(){state.jumpBoost=!state.jumpBoost;var g=selectedResident();if(g)g.jumpBoost=state.jumpBoost;updateControlHint();toast(state.jumpBoost?'Jump boost on · stronger grounded jumps':'Jump boost off')};
  $('dropObject').onclick=function(){var g=selectedResident();if(!dropHelpingObject(g))toast('Select a resident holding an object first')};
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};
@@ -1438,6 +1460,6 @@ function controls(){
 }
 // Initialize with no prompts or login; animation starts immediately.
 controls();setProfile();defaultCamera();newWorld('playground');setTool('grab');updateGameModes();syncLayout();requestAnimationFrame(loop);
-window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
+window.StickLab={exitChallenge:exitChallenge,selectGameMode:selectGameMode,getGameModes:function(){return GAME_MODES.map(function(x){return{id:x.id,name:x.name,summary:x.summary}})},getState:function(){return{gameMode:gameMode,entities:countEntities(),parts:world.parts.length,links:world.links.length,profile:profile,paused:state.paused,tool:state.tool,fps:state.fps,collisionCandidates:state.collisionCandidates,version:4,selected:state.selected,pace:state.pace,jumpBoost:state.jumpBoost,keys:{left:state.keys.left,right:state.keys.right,jump:state.keys.jump},agents:world.groups.filter(function(g){return g.ai}).length,aiEnabled:world.aiEnabled,challenge:challenge?{index:challenge.index,won:challenge.won,frames:challenge.frames}:null,unlocked:unlocked}},getWorld:function(){return JSON.parse(JSON.stringify(world))},getCamera:function(){return{x:cam.x,y:cam.y,z:cam.z}},createWorld:newWorld,startLevel:loadLevel,spawnResident:resident,setResidentMode:changeResidentMode,setResidentTarget:setResidentTarget,unhookFigure:unhookFigure,selectResident:chooseResident,releaseResident:releaseResident,setAIEnabled:setLivingAI,getResidents:function(){return world.groups.filter(function(g){return g.ai}).map(function(g){return{id:g.id,name:g.name,mode:g.mode,personality:g.personality,memory:g.memory,intent:g.intent||g.mode,motionState:g.motionState||'idle',targetX:g.targetX==null?null:g.targetX,pace:g.pace||'walk',jumpBoost:!!g.jumpBoost}})},setTool:setTool,save:saveLocal,load:loadLocal,exportScene:exportWorld,importScene:function(obj){assignWorld(obj,true);sandboxResume=null;gameReturn=null;gameMode='sandbox';updateGameModes()},step:simulate};
 })();
 </script></body></html>
