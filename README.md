@@ -1,10 +1,10 @@
-# StickLab v0.5.15 — Size-aware team carrying
+# StickLab v0.5.16 — Visible movement controls
 
-**Shared carriers now spread out according to the held object's actual collision width, including rotated boxes, while keeping the object centered on the chosen destination.** This reduces crowding around larger props and avoids skewing team destinations near world edges. [v0.5.15 team carry notes](docs/releases/v0.5.15-size-aware-team-carry.md) · [v0.5.14 control fix](docs/releases/v0.5.14-walk-cancel.md).
+**Movement controls now stay visible whenever a figure is present.** Tap a direction to steer the nearest figure without grabbing it; **Auto** returns a resident to its own behavior. Fallen figures now make stronger, repeated physical recovery efforts using braced hands and knees. Living World starts with more open lanes, and Walk asks residents to push loose props that block a direct route. [v0.5.16 control, recovery and world notes](docs/releases/v0.5.16-visible-controls.md) · [v0.5.15 team carry notes](docs/releases/v0.5.15-size-aware-team-carry.md).
 
 Tap Grab again during an active Walk to stop movement immediately. Shared carriers stop together and keep their grip. The route system plans low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge. This bounded climb does not support carrying while climbing, broad or angled structures, or detours. [v0.5.13 ledge-climb notes](docs/releases/v0.5.13-ledge-climb.md).
 
-Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenge starts clear stale figure controls, explain the paused state, and hide movement arrows when no figure is selected. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
+Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenges clear stale figure controls and explain the paused state. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
 
 Grips can break under strong force, and resident status explains when an object is held, shared, carried, or dropped. [v0.5.9 grasp and carry notes](docs/releases/v0.5.9-carrying-grips.md).
 
@@ -20,7 +20,7 @@ The default Playground no longer leaves a stick figure hanging from its head. En
 
 
 
-**On phones:** Tap **📍 Walk** in the bottom tool strip, then tap the destination. StickLab chooses the nearest figure, starts movement, enables movement AI, and makes it attempt to walk there. No separate Grab selection is required. See [v0.5.3 release notes](docs/releases/v0.5.3-walk-usability.md).
+**On phones:** Movement arrows stay visible whenever a figure is present. Tap one to steer the nearest figure without grabbing it; tap **Auto** to return a resident to AI control. For a longer trip, tap **📍 Walk**, then tap the destination. See [v0.5.16 notes](docs/releases/v0.5.16-visible-controls.md).
 
 
 

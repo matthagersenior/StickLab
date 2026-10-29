@@ -70,7 +70,9 @@ function updateControlHint(){
    helpingGraspTargetId(walker)?'📍 '+name+' carrying an object to destination':'📍 '+name+' walking to destination';
   if(walker.routePlan&&walker.routePlan.barriers&&walker.routePlan.barriers.length&&!/hopping|climb|retrying|blocked|waiting/.test(label.textContent))label.textContent+=' · '+walker.routePlan.barriers.length+' barrier steps planned';
  }else label.textContent='Arrows select a figure';
- var pad=$('controlpad');if(pad)pad.classList.toggle('hidden',!selected&&!walker);
+ var hasFigure=world.groups.some(function(g){var hip=findPart(g.hip);return !!hip&&!hip.fixed});
+ if(!selected&&!walker&&hasFigure)label.textContent='Tap arrows to steer the nearest figure · Auto resumes roaming';
+ var pad=$('controlpad');if(pad)pad.classList.toggle('hidden',!hasFigure&&!walker);
 }
 function updateResidents(){
  var panel=$('residentStatus'),g=selectedResident(),active=world.groups.filter(function(a){return a.ai}).length;
@@ -78,6 +80,7 @@ function updateResidents(){
  if(g&&g.ai){panel.textContent=g.name+' · '+g.personality+' · '+(g.dropNoticeUntil>state.tick?'Just dropped an object':g.motionState==='getting-up'?'Getting up':g.motionState==='pushing'?'Pushing nearby object':g.motionState==='sharing'?'Sharing an object':g.motionState==='carrying'?'Carrying an object':g.motionState==='grasping'?'Holding an object':g.intent||g.mode)+(world.aiEnabled?'':' · AI paused');$('residentMode').value=g.mode}
  else panel.textContent=active+' living figure'+(active===1?'':'s')+(world.aiEnabled?' · '+Math.min(active,limits[profile].agents)+' thinking ('+profile+')':' · AI off')+(g?' · passive ragdoll selected':'');
  $('releaseResident').disabled=!g;
+ var autoButton=$('releaseControlMobile');if(autoButton)autoButton.disabled=!g;
  $('dropObject').disabled=!g||!helpingGraspLink(g);
  $('residentMode').disabled=!g||!g.ai;
  $('applyResidentMode').disabled=!g||!g.ai;
@@ -261,7 +264,7 @@ function ensureControlledFigure(){
   if(score<bestScore){best=g;bestScore=score}
  }
  if(!best){toast('Place a Resident or Ragdoll to use the arrows');return null}
- releaseHelpingGrasp(best);releaseClimb(best);state.selected=best.hip;state.drag=null;state.pan=null;setTool('grab');
+ releaseClimb(best);state.selected=best.hip;state.drag=null;state.pan=null;
  var controlled=findPart(best.hip);cam.x=controlled.x;cam.y=controlled.y-80;
  updateResidents();toast('Controlling '+(best.name||'Figure')+' · hold arrows to move');
  return best;
@@ -318,12 +321,16 @@ function newWorld(which){var keepAI=world.aiEnabled!==false;if(which!=='empty')s
  resident(495,FLOOR-76);figure(1570,FLOOR-76);
  }else if(which==='living'){
  world.title='Living World';world.aiEnabled=true;
- block(690,FLOOR-22,130,44,true,'#aebbb7');
- block(1250,FLOOR-24,160,48,true,'#aebbb7');
- ball(950,FLOOR-29,30,COLORS.aqua);
- ball(1130,FLOOR-25,25,COLORS.pink);
- wheel(1430,FLOOR-28,false);
- resident(610,FLOOR-90);resident(780,FLOOR-90);resident(1170,FLOOR-90);resident(1470,FLOOR-90);
+  // Leave clear lanes for the first movements and spread the activity stations
+  // out so residents do not spawn directly inside a pile of props.
+  block(470,FLOOR-28,48,56,true,'#aebbb7');
+  block(1020,FLOOR-28,48,56,true,'#aebbb7');
+  block(1570,FLOOR-28,48,56,true,'#aebbb7');
+  block(690,FLOOR-29,58,58,false,COLORS.orange);
+  ball(825,FLOOR-29,29,COLORS.aqua);
+  ball(1335,FLOOR-26,26,COLORS.pink);
+  wheel(1810,FLOOR-28,false);
+  resident(245,FLOOR-90);resident(760,FLOOR-90);resident(1270,FLOOR-90);resident(1785,FLOOR-90);
  if(world.groups[0])world.groups[0].mode='help';
  }
  $('worldTitle').textContent=world.title;defaultCamera();updateCounts();updateChallenges();updateResidents();toast(world.title+' loaded')}
@@ -703,6 +710,7 @@ function controls(){
  $('material').onchange=function(){options.material=this.value;toast('Building with '+this.value)};
  $('aiEnabled').onchange=function(){setLivingAI(this.checked);toast(this.checked?'Living AI enabled':'Living AI paused')};
  $('releaseResident').onclick=releaseResident;
+ $('releaseControlMobile').onclick=releaseResident;
  $('dropObject').onclick=function(){var g=selectedResident();if(!dropHelpingObject(g))toast('Select a resident holding an object first')};
  $('applyResidentMode').onclick=function(){var g=selectedResident();if(g&&g.ai){var name=g.name;if(changeResidentMode(g.id,$('residentMode').value)){releaseResident();state.paused=false;world.aiEnabled=true;updatePause();toast(name+' now '+g.mode+' · autonomous physics running')}}else toast('Select a living figure in Grab mode first')};
  $('goHere').onclick=function(){setTool('goto')};

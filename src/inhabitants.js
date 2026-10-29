@@ -169,6 +169,20 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}
  // Local decisions are independent of device performance, always bounded to 32 candidate parts.
  if(result.direction&&result.intent!=='blocked'){
+  // Go Here has no global detour planner, but residents should make progress
+  // through a loose prop by pushing it with the existing physical motor.
+  if(mode==='go'&&!carried&&!result.pushTargetId){
+   var pushCandidate=null,pushGap=Infinity;
+   for(i=0;i<nearby.length&&i<32;i++){
+    p=nearby[i];if(!p||p.fixed||p.group||['ball','box','wheel'].indexOf(p.kind)<0||p.motor)continue;
+    dx=(p.x-hip.x)*result.direction;
+    var horizontal=p.kind==='box'?Math.max(p.w||0,p.h||0)/2:(p.r||20);
+    var vertical=p.kind==='box'?(p.h||0)/2:(p.r||20);
+    if(dx< -8||dx>horizontal+46||Math.abs(p.y-hip.y)>vertical+58)continue;
+    if(dx<pushGap){pushCandidate=p;pushGap=dx}
+   }
+   if(pushCandidate)result.pushTargetId=pushCandidate.id;
+  }
   var barrier=routeBarrier(hip,nearby,result.direction,floor,mode==='go'?group.targetX:null,carried);
   if(barrier&&mode==='go'){
    if(barrier.hop){result.jump=true;result.intent='hop'}

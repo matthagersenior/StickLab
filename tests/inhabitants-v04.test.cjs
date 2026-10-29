@@ -27,6 +27,12 @@ test('assisting an experiment points toward the ball and can activate a nearby w
  const r=Brain.decide(actor('help','helpful'),hip,[wheel],{x:850,y:880},50,930);
  assert.equal(r.intent,'help');assert.equal(r.direction,1);assert.equal(r.activateMotorId,8);
 });
+test('a resident on a direct walk tries to physically push a loose prop in its path',()=>{
+ const walker={...actor('go','curious'),targetX:800};
+ const ball={id:21,kind:'ball',x:548,y:872,px:548,py:872,r:22,fixed:false};
+ const r=Brain.decide(walker,hip,[ball],null,50,930);
+ assert.equal(r.intent,'go');assert.equal(r.direction,1);assert.equal(r.pushTargetId,ball.id);
+});
 test('resting or manually controlled inhabitants do not receive AI impulses',()=>{
  const r=Brain.decide(actor('rest','cautious'),hip,[],null,1,930);
  assert.equal(r.direction,0);assert.equal(r.jump,false);

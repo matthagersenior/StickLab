@@ -91,6 +91,16 @@ test('living figures have names, modes and manual takeover without stopping phys
  for(let i=0;i<35;i++)api.step();
  assert.ok(['help','wander','investigate','avoid'].includes(api.getResidents()[0].intent));
 });
+test('movement arrows take control without touching a figure and Auto resumes AI',()=>{
+ const {api,nodes}=engine(true);api.createWorld('living');
+ assert.equal(api.getState().selected,null);
+ assert.equal(api.getState().paused,false);
+ nodes['hold-right'].listeners.pointerdown({preventDefault(){},pointerId:1});
+ assert.notEqual(api.getState().selected,null,'direction buttons select the nearest figure directly');
+ nodes.releaseControlMobile.onclick();
+ assert.equal(api.getState().selected,null,'Auto releases direct control');
+ assert.equal(api.getState().aiEnabled,true,'resident AI remains active after control is released');
+});
 test('global AI toggle leaves world and manual ragdoll interactions intact',()=>{
  const {api}=engine();api.createWorld('empty');
  api.spawnResident(500,845);
@@ -157,7 +167,7 @@ test('mobile direction pad auto-selects a visible playable figure instead of sil
  assert.equal(typeof right.listeners.pointerdown,'function','right button must have a pointer handler');
  right.listeners.pointerdown({pointerId:5,preventDefault(){}});
  assert.ok(api.getState().selected,'right press should select an existing figure');
- assert.equal(api.getState().tool,'grab','directional controls should enter control mode');
+ assert.equal(api.getState().tool,'living','directional control should not switch tools or require Grab');
  assert.equal(api.getState().keys.right,true);
  const chosen=api.getWorld().parts.find(p=>p.id===api.getState().selected);
  const x=chosen.x;
@@ -510,7 +520,7 @@ test('fall-recovery effort lifts head and chest back toward standing under actua
   if(i>70&&rise>35)uprightFrames++;
  }
  assert.ok(highest>45,'recovery must actually lift the head away from pelvis, measured '+highest);
- assert.ok(uprightFrames>=5,'recovery must achieve some upright frames, measured '+uprightFrames);
+ assert.ok(uprightFrames>=20,'recovery should maintain an upright posture, measured '+uprightFrames+' frames');
 });
 
 test('real Go Here actor attempts to jump a low fixed obstacle in the physics world',()=>{

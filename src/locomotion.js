@@ -35,12 +35,15 @@ function step(group,parts,command,terrain,floor,tick){
   status.recovering=true;
   group.motionState='getting-up';
   var recoveryTick=finite(group.lastRecoveryTick)?group.lastRecoveryTick:-1000;
-  if((tick||0)-recoveryTick>=8){
-   // Joint velocity corrections only; constraints and collisions do the actual lifting.
-   nudgeY(chest,4.4);nudgeY(head,3.2);nudgeY(hip,1.2);
-   nudgeY(parts.ls,1.5);nudgeY(parts.rs,1.5);
-   nudgeX(chest,clamp(hip.x-chest.x,10)*.075);
-   nudgeX(head,clamp(hip.x-head.x,13)*.075);
+  if((tick||0)-recoveryTick>=3){
+   // Rebuild an upright posture with bounded joint impulses. Hands and knees
+   // press into the floor when braced, so collision reaction helps lift the
+   // torso instead of repeatedly pushing every body part in the same direction.
+   nudgeY(chest,5.8);nudgeY(head,4.6);nudgeY(hip,2.1);
+   nudgeY(parts.ls,1.9);nudgeY(parts.rs,1.9);
+   [parts.lh,parts.rh,parts.lk,parts.rk].forEach(function(limb){if(limb)nudgeY(limb,isSupported(limb,terrain,floor)?-1.8:1.8)});
+   nudgeX(chest,clamp(hip.x-chest.x,18)*.09);
+   nudgeX(head,clamp(hip.x-head.x,22)*.075);
    group.lastRecoveryTick=tick||0;
   }
   return status;

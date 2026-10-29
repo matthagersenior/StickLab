@@ -48,7 +48,7 @@ test('essential gameplay controls remain inside the viewport and do not overlap 
      chip:rect('.world-chip'),actions:rect('.top-actions'),top:rect('.topbar'),
      zoom:rect('.zoom'),pad:rect('.controlpad'),tools:rect('.mobiletools'),
      status:rect('.status'),menu:rect('#openMenu'),
-     buttons:['#openMenu','#snapshot','#step','#pause','#zoomIn','#zoomOut','#recenter','[data-hold="left"]','[data-hold="jump"]','[data-hold="right"]'].map(rect).filter(Boolean)
+     buttons:['#openMenu','#snapshot','#step','#pause','#zoomIn','#zoomOut','#recenter','[data-hold="left"]','[data-hold="jump"]','[data-hold="right"]','#releaseControlMobile'].map(rect).filter(Boolean)
     };
    });
    const inside=r=>r.x>=-1&&r.y>=-1&&r.x+r.w<=data.w+1&&r.y+r.h<=data.h+1;
@@ -63,6 +63,25 @@ test('essential gameplay controls remain inside the viewport and do not overlap 
    await context.close();
   }
  }finally{await browser.close();await new Promise(r=>srv.close(r))}
+});
+
+test('movement pad is visible without selection and an arrow directly takes control',{skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{
+ const srv=server();await new Promise(resolve=>srv.listen(0,'127.0.0.1',resolve));
+ const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome',args:['--no-sandbox']});
+ try{
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2});
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto('http://127.0.0.1:'+srv.address().port+'/',{waitUntil:'domcontentloaded'});
+  assert.equal(await page.locator('#controlpad').isVisible(),true,'figures should have visible movement controls before selection');
+  assert.equal(await page.locator('#releaseControlMobile').isEnabled(),false,'Auto is inactive until a figure is controlled');
+  await page.locator('[data-hold="right"]').click();
+  assert.notEqual(await page.evaluate(()=>window.StickLab.getState().selected),null,'an arrow should select the nearest figure directly');
+  assert.equal(await page.locator('#releaseControlMobile').isEnabled(),true);
+  await page.locator('#releaseControlMobile').click();
+  assert.equal(await page.evaluate(()=>window.StickLab.getState().selected),null,'Auto should hand the resident back to AI');
+  assert.deepEqual(errors,[]);
+  await context.close();
+ }finally{await browser.close();await new Promise(resolve=>srv.close(resolve))}
 });
 
 test('same running touch session survives portrait-landscape-portrait rotation', {skip:!process.env.STICKLAB_BROWSER_TEST},async()=>{

@@ -109,6 +109,15 @@
  .mission-objective{display:none}
 }
 
+/* Keep direct movement discoverable even before a figure has been selected. */
+.controlpad{display:flex;max-width:240px}
+.controlpad #releaseControlMobile{min-width:52px;font-size:12px;background:#315044dd;border-color:#83e0cb;color:#dffff4}
+.controlpad #releaseControlMobile:disabled{opacity:.45}
+@media (max-height:560px) and (orientation:landscape) and (pointer:coarse),
+       (max-width:690px) and (max-height:560px) and (orientation:landscape){
+ .controlpad{max-width:202px}
+}
+
 /* Real game-type selection: readable in the narrow Android drawer and on desktop. */
 #gameModeSection{scroll-margin-top:10px}
 .game-intro{margin:7px 0 12px;line-height:1.45}
