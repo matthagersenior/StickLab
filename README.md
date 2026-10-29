@@ -1,6 +1,6 @@
-# StickLab v0.5.10 — Mobile clarity and team carrying
+# StickLab v0.5.11 — Double Gate challenge
 
-**Residents in Help mode can hold nearby loose balls and small boxes, then carry the held object with 📍 Walk.** If two residents share a grip, sending either one to a destination sends both together. Select a holder and use **↘ Drop held object** to release it without an immediate re-grab. Puzzle levels now clear stale figure controls, show a clear pause prompt, and hide movement arrows when there is no figure to control. [v0.5.10 release notes](docs/releases/v0.5.10-mobile-team-carry.md).
+**Physics Challenges now include Double Gate**, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenge starts clear stale figure controls, explain the paused state, and hide movement arrows when no figure is selected. Shared residents now travel to one Walk destination together. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md) · [team-carry details](docs/releases/v0.5.10-mobile-team-carry.md).
 
 Grips can break under strong force, and resident status explains when an object is held, shared, carried, or dropped. [v0.5.9 grasp and carry notes](docs/releases/v0.5.9-carrying-grips.md).
 
@@ -16,7 +16,7 @@ The default Playground no longer leaves a stick figure hanging from its head. En
 
 
 
-**On phones:** Tap **📍 Walk** in the bottom tool strip, then tap the destination. StickLab chooses the nearest figure, starts a paused world, enables movement AI, and makes it attempt to walk there. No separate Grab selection is required. See [v0.5.3 release notes](docs/releases/v0.5.3-walk-usability.md).
+**On phones:** Tap **📍 Walk** in the bottom tool strip, then tap the destination. StickLab chooses the nearest figure, starts movement, enables movement AI, and makes it attempt to walk there. No separate Grab selection is required. See [v0.5.3 release notes](docs/releases/v0.5.3-walk-usability.md).
 
 
 
@@ -26,7 +26,7 @@ The default Playground no longer leaves a stick figure hanging from its head. En
 
 **Physics Puzzle fix:** Selecting **Physics Puzzles** now opens a full-screen level chooser, showing unlocked levels immediately regardless of your sidebar scroll position. Tap **First Push** to begin Level 1, or Back to Games to cancel. [See v0.5.1 fix](docs/releases/v0.5.1-puzzle-picker.md).
 
-**Choose Your Game:** Tap **🎮 Games** in the top bar. Choose **Free Sandbox**, **Physics Puzzles**, **Engineering Lab**, **Ragdoll Chaos**, or **Living World**. Physics Puzzles has three optional levels; the others are distinct open-ended worlds using the same physics controls. Your Free Sandbox scene is kept temporarily when switching modes and is restored on return. [Details and limits](docs/releases/v0.5.0-game-modes.md).
+**Choose Your Game:** Tap **🎮 Games** in the top bar. Choose **Free Sandbox**, **Physics Puzzles**, **Engineering Lab**, **Ragdoll Chaos**, or **Living World**. Physics Puzzles has four optional levels; the others are distinct open-ended worlds using the same physics controls. Your Free Sandbox scene is kept temporarily when switching modes and is restored on return. [Details and limits](docs/releases/v0.5.0-game-modes.md).
 
 
 
@@ -48,7 +48,7 @@ StickLab is a tiny, offline-first, cross-device physics playground. Build contra
 
 **Free Sandbox:** use Playground, Tower or Chaos scenes, or clear the world to build your own. No success condition, time limit or login.
 
-**Physics Challenges:** select Level 01, 02 or 03 in the sidebar. Each puzzle has a **blue target ball** and **green goal**. Get the target ball fully inside the goal and keep it settled for **12 consecutive physics steps**. Any physical construction that works is valid: falling weights, ramps, wheels, ropes, springs, hinges, or a powered cart. You cannot directly grab the target ball, and importing a scene exits Challenge mode. Win to unlock the next level; unlocks are retained on your device. **Hint**, **Restart level**, **Next level** and **Free sandbox** controls are available.
+**Physics Challenges:** four puzzles now cover a simple push, an elevated platform, one wall, and two fixed gates. Each puzzle has a **blue target ball** and **green goal**. Get the target ball fully inside the goal and keep it settled for **12 consecutive physics steps**. Any physical construction that works is valid: falling weights, ramps, wheels, ropes, springs, hinges, or a powered cart. You cannot directly grab the target ball, and importing a scene exits Challenge mode. Win to unlock the next level; unlocks are retained on your device. **Hint**, **Restart level**, **Next level** and **Free sandbox** controls are available.
 
 The starter levels are: **First Push** (move a ball across the floor), **Bridge the Gap** (move the ball from a raised platform), and **Over the Wall** (get it across a fixed obstacle). They have no mandatory scripted solution.
 

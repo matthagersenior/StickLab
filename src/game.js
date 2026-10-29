@@ -303,7 +303,7 @@ function refreshPuzzlePicker(){
   if(status)status.textContent=locked?'LOCKED':(challenge&&challenge.index===index&&challenge.won?'SOLVED':'PLAY');
  });
  var label=$('puzzlePickerStatus');
- if(label)label.textContent=unlocked>=Levels.levels.length?'All three physics levels are unlocked. Choose any level.':'Level '+unlocked+' is available. Complete it to unlock Level '+(unlocked+1)+'.';
+ if(label)label.textContent=unlocked>=Levels.levels.length?'All '+Levels.levels.length+' physics levels are unlocked. Choose any level.':'Level '+unlocked+' is available. Complete it to unlock Level '+(unlocked+1)+'.';
 }
 function openPuzzlePicker(){
  refreshPuzzlePicker();

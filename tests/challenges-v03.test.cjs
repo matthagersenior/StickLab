@@ -1,9 +1,9 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const Levels=require('../src/levels.js'),Machines=require('../src/machines.js'),Core=require('../src/core.js');
-test('challenge campaign contains three distinct physics goals',()=>{
- assert.equal(Levels.levels.length,3);
- assert.equal(new Set(Levels.levels.map(l=>l.id)).size,3);
+test('challenge campaign contains four distinct physics goals',()=>{
+ assert.equal(Levels.levels.length,4);
+ assert.equal(new Set(Levels.levels.map(l=>l.id)).size,4);
  Levels.levels.forEach(level=>{assert.ok(level.goal.w>50);assert.ok(level.goal.x>level.start.x);assert.ok(level.hint)});
 });
 test('goal only completes after twelve consecutive simulation frames of a settled ball',()=>{
