@@ -3,6 +3,7 @@
 (function(root){'use strict';
 var personalities=['curious','cautious','helpful'],modes=['wander','help','rest','go'];
 var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=82,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
+var MAX_PLANNED_BARRIERS=128;
 function isGraspable(p){return !!(p&&!p.group&&!p.fixed&&((p.kind==='ball'&&p.r>12&&p.r<=42)||(p.kind==='box'&&p.w>=5&&p.h>=5&&p.w<=72&&p.h<=72&&p.w*p.h<=4200)))}
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
@@ -23,12 +24,40 @@ function hasJumpClearance(hip,barrier,direction,nearby){
  var edge=direction>0?barrier.right:barrier.left;
  var pathLeft=Math.min(hip.x,edge)-18,pathRight=Math.max(hip.x,edge)+18;
  var arcTop=hip.y-JUMP_CLEARANCE-FIGURE_HEAD_CLEARANCE,arcBottom=hip.y-FIGURE_HEAD_CLEARANCE;
- for(var i=0;i<nearby.length&&i<32;i++){
+ for(var i=0;i<nearby.length&&i<MAX_PLANNED_BARRIERS;i++){
   var box=nearby[i],bounds=fixedBoxBounds(box);
   if(!bounds||bounds.bottom<=arcTop||bounds.top>=arcBottom)continue;
   if(bounds.right>=pathLeft&&bounds.left<=pathRight)return false;
  }
  return true;
+}
+function planRoute(group,hip,terrain,targetX,floor,carried){
+ if(!hip||!finite(targetX))return {target:targetX,signature:'',barriers:[],blocked:null};
+ terrain=terrain||[];floor=finite(floor)?floor:930;
+ var direction=targetX>=hip.x?1:-1,travel=Math.abs(targetX-hip.x),items=[],signatureParts=[],carriedBounds=objectBounds(carried);
+ for(var i=0;i<terrain.length;i++){
+  var box=terrain[i],bounds=fixedBoxBounds(box);if(!bounds)continue;
+  var front=direction>0?bounds.left-hip.x:hip.x-bounds.right;
+  if(front< -22||front>travel+12)continue;
+  var bodyOverlap=bounds.bottom>=hip.y+22&&bounds.top<=floor-10;
+  var carriedOverlap=carriedBounds&&bounds.bottom>=carriedBounds.top&&bounds.top<=carriedBounds.bottom&&
+   bounds.right>=carriedBounds.left-24&&bounds.left<=carriedBounds.right+24;
+  if(!bodyOverlap&&!carriedOverlap)continue;
+  signatureParts.push([box.id,bounds.left.toFixed(1),bounds.right.toFixed(1),bounds.top.toFixed(1),bounds.bottom.toFixed(1),bounds.angle.toFixed(3)].join(':'));
+  items.push({id:box.id,front:front,bounds:bounds});
+ }
+ items.sort(function(a,b){return a.front-b.front});
+ signatureParts.sort();
+ var barriers=[],blocked=null;
+ for(i=0;i<items.length&&i<MAX_PLANNED_BARRIERS;i++){
+  var item=items[i],b=item.bounds;
+  var hop=!carried&&Math.abs(b.angle)<=.1&&(b.right-b.left)<=MAX_HOP_WIDTH&&b.top>=hip.y-6&&floor-b.top<=MAX_HOP_HEIGHT;
+  if(hop)hop=hasJumpClearance(hip,b,direction,terrain);
+  if(!hop){blocked=item.id;break}
+  barriers.push({id:item.id,distance:item.front,launchX:direction>0?b.left-30:b.right+30});
+ }
+ if(items.length>MAX_PLANNED_BARRIERS&&!blocked)blocked=items[MAX_PLANNED_BARRIERS].id;
+ return {target:targetX,direction:direction,signature:signatureParts.join('|'),barriers:barriers,blocked:blocked,plannedTick:0};
 }
 // Very small local collision-aware planner. This is not a global pathfinder.
 function routeBarrier(hip,nearby,direction,floor,targetX,carried){
@@ -80,7 +109,7 @@ function stalledTravel(group,hip,tick){
  }
  return null;
 }
-function decide(group,hip,nearby,goal,tick,floor,carried){
+function decide(group,hip,nearby,goal,tick,floor,carried,routeGeometry){
 var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activateMotorId:null,pushTargetId:null,graspTargetId:null,memory:memory};
  if(!group||!group.ai||group.mode==='rest'||!hip)return result;
  nearby=nearby||[];floor=floor||930;
@@ -102,7 +131,22 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
   if(p.kind==='wheel'&&!p.motor&&Math.abs(dx)<75&&Math.abs(dy)<125&&!wheel)wheel=p;
  }
  if(hazard){result.intent='avoid';result.direction=hazard.x>=hip.x?-1:1;memory.hazards=Math.min(99,memory.hazards+1);memory.lastHazardX=hazard.x;return result}
- if(mode==='go'&&typeof group.targetX==='number'&&isFinite(group.targetX)){var distance=group.targetX-hip.x;result.intent=Math.abs(distance)<=26?'arrived':'go';result.direction=Math.abs(distance)<=26?0:(distance>0?1:-1)}
+ if(mode==='go'&&typeof group.targetX==='number'&&isFinite(group.targetX)){
+  var distance=group.targetX-hip.x;result.intent=Math.abs(distance)<=26?'arrived':'go';result.direction=Math.abs(distance)<=26?0:(distance>0?1:-1);
+  var route=group.routePlan,geometry=routeGeometry||nearby,routeNow=planRoute(group,hip,geometry,group.targetX,floor,carried);
+  if(!route||route.target!==group.targetX||route.signature!==routeNow.signature||((tick||0)-(route.plannedTick||0))>90){
+   route=routeNow;route.plannedTick=tick||0;group.routePlan=route;
+  }else{route.barriers=routeNow.barriers;route.blocked=routeNow.blocked;route.direction=routeNow.direction}
+  if(route.blocked!=null&&result.intent!=='arrived'){
+   result.intent='blocked';result.direction=0;result.jump=false;result.blockedBy=route.blocked;
+  }else if(route.barriers.length){
+   result.routeBarriers=route.barriers.length;
+   var nextBarrier=route.barriers[0];
+   // Execute the planned sequence in order. The physical jump still occurs
+   // only near the measured barrier edge, using the existing grounded impulse.
+   if(result.direction&&nextBarrier&&nextBarrier.distance<=65&&nextBarrier.distance>=-22){result.jump=true;result.intent='hop';result.routeBarrierId=nextBarrier.id}
+  }
+ }
  else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<18?0:(delta>0?1:-1);
    // Help mode can deliberately push a loose ball once it is in physical reach.
    if(isGraspable(goal)&&Math.abs(delta)<95&&Math.abs(goal.y-hip.y)<75)result.graspTargetId=goal.id;
@@ -111,7 +155,7 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
  }else if(personality==='curious'&&interest){result.intent='investigate';result.direction=interest.x>hip.x?1:-1}
  else{result.intent='wander';result.direction=Math.floor(((tick||0)+parseInt((group.id||'f0').slice(1),10)*19)/160)%2===0?1:-1}
  // Local decisions are independent of device performance, always bounded to 32 candidate parts.
- if(result.direction){
+ if(result.direction&&result.intent!=='blocked'){
   var barrier=routeBarrier(hip,nearby,result.direction,floor,mode==='go'?group.targetX:null,carried);
   if(barrier&&mode==='go'){
    if(barrier.hop){result.jump=true;result.intent='hop'}
@@ -127,7 +171,7 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
  if(hip.x<85)result.direction=1;else if(hip.x>2080)result.direction=-1;
  return result;
 }
-var api={decide:decide,modes:modes,personalities:personalities,isGraspable:isGraspable};
+var api={decide:decide,modes:modes,personalities:personalities,isGraspable:isGraspable,planRoute:planRoute};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(root)root.StickLabInhabitants=api;
 })(typeof window!=='undefined'?window:null);

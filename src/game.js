@@ -62,10 +62,12 @@ function updateControlHint(){
  else if(selected)label.textContent='Controlling: '+(selected.name||'Figure');
  else if(walker){
   var name=walker.name||'Figure';
-  label.textContent=walker.intent==='blocked'?'⚠ '+name+(helpingGraspTargetId(walker)?' carrying object':'')+' blocked · move the wall or choose another destination':
+  label.textContent=walker.intent==='waiting'?'🤝 '+name+' waiting for the carrying partner':
+   walker.intent==='blocked'?'⚠ '+name+(helpingGraspTargetId(walker)?' carrying object':'')+' route blocked · move the wall or choose another destination':
    walker.intent==='hop'?'↑ '+name+' hopping over a low obstacle':
    walker.intent==='retry'?'↻ '+name+' retrying movement':
    helpingGraspTargetId(walker)?'📍 '+name+' carrying an object to destination':'📍 '+name+' walking to destination';
+  if(walker.routePlan&&walker.routePlan.barriers&&walker.routePlan.barriers.length&&!/hopping|retrying|blocked|waiting/.test(label.textContent))label.textContent+=' · '+walker.routePlan.barriers.length+' hop'+(walker.routePlan.barriers.length===1?'':'s')+' planned';
  }else label.textContent='Arrows select a figure';
  var pad=$('controlpad');if(pad)pad.classList.toggle('hidden',!selected&&!walker);
 }
@@ -183,9 +185,12 @@ function setResidentTarget(id,x){
  if(heldTarget!=null&&helpingGraspCount(heldTarget)>1){
   world.links.forEach(function(l){if(l.graspOwner&&team.every(function(member){return member.id!==l.graspOwner})){var member=findGroup(l.graspOwner);if(member&&helpingGraspTargetId(member)===heldTarget)team.push(member)}});
  }
+ // Keep the shared object near the requested point, with its holders on either side.
+ team.sort(function(a,b){var pa=findPart(a.hip),pb=findPart(b.hip);return (pa?pa.x:0)-(pb?pb.x:0)});
  for(var i=0;i<team.length;i++){
   var member=team[i];releaseFigureConnections(member,true);
-  member.ai=true;member.mode='go';member.targetX=x;member.brain=null;member.navigation=null;member.intent='go';
+  var offset=team.length>1?(i-(team.length-1)/2)*44:0;
+  member.ai=true;member.mode='go';member.targetX=Math.max(30,Math.min(W-30,x+offset));member.teamCarryTargetId=team.length>1?heldTarget:null;member.brain=null;member.navigation=null;member.routePlan=null;member.intent='go';
  }
  // Choosing Walk is an explicit request to animate; never leave it silently paused.
  world.aiEnabled=true;state.paused=false;updatePause();
@@ -448,8 +453,13 @@ function residentInput(){
     }
    }
    var previousIntent=g.intent;
-   g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR,findPart(helpingGraspTargetId(g)));
+   g.brain=Brain.decide(g,hip,nearby,goal,state.tick,FLOOR,findPart(helpingGraspTargetId(g)),world.parts);
    maintainHelpingGrasp(g,g.brain);g.intent=g.brain.intent;
+   var carriedId=helpingGraspTargetId(g);
+   if(g.mode==='go'&&g.brain.intent==='arrived'&&carriedId!=null&&helpingGraspCount(carriedId)>1){
+    var partnerStillMoving=world.groups.some(function(other){if(other.id===g.id||helpingGraspTargetId(other)!==carriedId||other.mode!=='go')return false;var otherHip=findPart(other.hip);return !otherHip||Math.abs((other.targetX||0)-otherHip.x)>26});
+    if(partnerStillMoving){g.brain.intent='waiting';g.brain.direction=0;g.intent='waiting'}
+   }
    var graspTarget=helpingGraspTargetId(g);
    if(graspTarget)g.motionState=helpingGraspCount(graspTarget)>1?'sharing':g.mode==='go'?'carrying':'grasping';
    if(previousIntent!==g.intent&&(previousIntent==='grasp'||g.intent==='grasp'))updateResidents();
@@ -457,13 +467,19 @@ function residentInput(){
     updateControlHint();
     if(g.intent==='blocked')toast((g.name||'Figure')+' is blocked · try a new route or move the obstacle');
    }
+   if(g.mode==='go')updateControlHint();
    g.memory=g.brain.memory;
    if(g.brain.activateMotorId){var motor=findPart(g.brain.activateMotorId);if(motor&&motor.kind==='wheel'&&!motor.motor){motor.motor=true;motor.motorDirection=g.brain.direction||1}}
   }
   driveFigure(g,g.brain||{direction:0});
   var heldTarget=helpingGraspTargetId(g);
   if(heldTarget)g.motionState=helpingGraspCount(heldTarget)>1?'sharing':g.mode==='go'?'carrying':'grasping';
-  if(g.mode==='go'&&g.brain&&g.brain.intent==='arrived'){g.mode='rest';g.targetX=null;g.brain=null;g.intent='arrived';updateResidents()}
+  if(g.mode==='go'&&g.brain&&g.brain.intent==='arrived'){
+   var held=helpingGraspTargetId(g),team=held!=null&&helpingGraspCount(held)>1?world.groups.filter(function(other){return helpingGraspTargetId(other)===held&&other.mode==='go'}):[g];
+   var allArrived=team.every(function(other){var memberHip=findPart(other.hip);return !!memberHip&&Math.abs((other.targetX||0)-memberHip.x)<=26});
+   if(allArrived)team.forEach(function(other){other.mode='rest';other.targetX=null;other.navigation=null;other.routePlan=null;other.brain=null;other.intent='arrived';other.teamCarryTargetId=null});
+   updateResidents();
+  }
 
  }
 }
