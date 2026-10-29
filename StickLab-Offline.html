@@ -374,6 +374,7 @@ var personalities=['curious','cautious','helpful'],modes=['wander','help','rest'
 var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=82,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
 var MAX_PLANNED_BARRIERS=128;
 function isGraspable(p){return !!(p&&!p.group&&!p.fixed&&((p.kind==='ball'&&p.r>12&&p.r<=42)||(p.kind==='box'&&p.w>=5&&p.h>=5&&p.w<=72&&p.h<=72&&p.w*p.h<=4200)))}
+function finite(n){return typeof n==='number'&&isFinite(n)}
 function bounded(n,max){return Math.max(0,Math.min(max,(typeof n==='number'&&isFinite(n))?n:0))}
 function memoryOf(g){var m=g.memory||{};return {hazards:bounded(m.hazards,99),lastHazardX:typeof m.lastHazardX==='number'&&isFinite(m.lastHazardX)?m.lastHazardX:null,interactions:bounded(m.interactions,99)}}
 function fixedBoxBounds(box){
