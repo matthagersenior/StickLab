@@ -2,7 +2,7 @@
    No DOM, no timers, no random calls, no direct modification of physics bodies. */
 (function(root){'use strict';
 var personalities=['curious','cautious','helpful'],modes=['wander','help','rest','go'];
-var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=82,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
+var MAX_HOP_WIDTH=72,MAX_HOP_HEIGHT=82,MAX_CLIMB_HEIGHT=148,JUMP_CLEARANCE=105,FIGURE_HEAD_CLEARANCE=95;
 var MAX_PLANNED_BARRIERS=128;
 function isGraspable(p){return !!(p&&!p.group&&!p.fixed&&((p.kind==='ball'&&p.r>12&&p.r<=42)||(p.kind==='box'&&p.w>=5&&p.h>=5&&p.w<=72&&p.h<=72&&p.w*p.h<=4200)))}
 function finite(n){return typeof n==='number'&&isFinite(n)}
@@ -32,6 +32,14 @@ function hasJumpClearance(hip,barrier,direction,nearby){
  }
  return true;
 }
+function hasClimbClearance(barrier,nearby,barrierId){
+ for(var i=0;i<nearby.length;i++){
+  var box=nearby[i];if(!box||box.id===barrier.id||box.id===barrierId)continue;
+  var bounds=fixedBoxBounds(box);if(!bounds)continue;
+  if(bounds.right>=barrier.left-26&&bounds.left<=barrier.right+26&&bounds.bottom>barrier.top-100&&bounds.top<barrier.top+12)return false;
+ }
+ return true;
+}
 function planRoute(group,hip,terrain,targetX,floor,carried){
  if(!hip||!finite(targetX))return {target:targetX,signature:'',barriers:[],blocked:null};
  terrain=terrain||[];floor=finite(floor)?floor:930;
@@ -52,10 +60,12 @@ function planRoute(group,hip,terrain,targetX,floor,carried){
  var barriers=[],blocked=null;
  for(i=0;i<items.length&&i<MAX_PLANNED_BARRIERS;i++){
   var item=items[i],b=item.bounds;
-  var hop=!carried&&Math.abs(b.angle)<=.1&&(b.right-b.left)<=MAX_HOP_WIDTH&&b.top>=hip.y-6&&floor-b.top<=MAX_HOP_HEIGHT;
+  var flat=Math.abs(b.angle)<=.1&&(b.right-b.left)<=MAX_HOP_WIDTH;
+  var hop=!carried&&flat&&b.top>=hip.y-6&&floor-b.top<=MAX_HOP_HEIGHT;
   if(hop)hop=hasJumpClearance(hip,b,direction,terrain);
-  if(!hop){blocked=item.id;break}
-  barriers.push({id:item.id,distance:item.front,launchX:direction>0?b.left-30:b.right+30});
+  var climb=!hop&&!carried&&flat&&floor-b.top>MAX_HOP_HEIGHT&&floor-b.top<=MAX_CLIMB_HEIGHT&&hasClimbClearance(b,terrain,item.id);
+  if(!hop&&!climb){blocked=item.id;break}
+  barriers.push({id:item.id,type:climb?'climb':'hop',distance:item.front,launchX:direction>0?b.left-30:b.right+30});
  }
  if(items.length>MAX_PLANNED_BARRIERS&&!blocked)blocked=items[MAX_PLANNED_BARRIERS].id;
  return {target:targetX,direction:direction,signature:signatureParts.join('|'),barriers:barriers,blocked:blocked,plannedTick:0};
@@ -85,9 +95,11 @@ function routeBarrier(hip,nearby,direction,floor,targetX,carried){
   // A ground-level knee-height box is hopable, not a 150px wall or overhead platform.
   // Restrict hopping to nearly level boxes. An angled body's AABB is safe for
   // detecting a block, but is not enough evidence that a physical hop clears it.
-  var hop=!carried&&Math.abs(bounds.angle)<=.1&&(bounds.right-bounds.left)<=MAX_HOP_WIDTH&&bounds.top>=hip.y-6&&floor-bounds.top<=MAX_HOP_HEIGHT;
+  var flat=Math.abs(bounds.angle)<=.1&&(bounds.right-bounds.left)<=MAX_HOP_WIDTH;
+  var hop=!carried&&flat&&bounds.top>=hip.y-6&&floor-bounds.top<=MAX_HOP_HEIGHT;
   if(hop)hop=hasJumpClearance(hip,bounds,direction,nearby);
-  if(!nearest||front<nearest.distance)nearest={distance:front,hop:hop};
+  var climb=!hop&&!carried&&flat&&floor-bounds.top>MAX_HOP_HEIGHT&&floor-bounds.top<=MAX_CLIMB_HEIGHT&&hasClimbClearance(bounds,nearby,box.id);
+  if(!nearest||front<nearest.distance)nearest={id:box.id,distance:front,hop:hop,climb:climb};
  }
  return nearest;
 }
@@ -145,7 +157,7 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
    var nextBarrier=route.barriers[0];
    // Execute the planned sequence in order. The physical jump still occurs
    // only near the measured barrier edge, using the existing grounded impulse.
-   if(result.direction&&nextBarrier&&nextBarrier.distance<=65&&nextBarrier.distance>=-22){result.jump=true;result.intent='hop';result.routeBarrierId=nextBarrier.id}
+   if(result.direction&&nextBarrier&&nextBarrier.distance<=65&&nextBarrier.distance>=-22){result.routeBarrierId=nextBarrier.id;if(nextBarrier.type==='climb'){result.climb=true;result.climbTargetId=nextBarrier.id;result.climbDirection=result.direction;result.intent='climb'}else{result.jump=true;result.intent='hop'}}
   }
  }
  else if(mode==='help'&&goal){result.intent='help';var delta=goal.x-hip.x;result.direction=Math.abs(delta)<18?0:(delta>0?1:-1);
@@ -160,11 +172,12 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
   var barrier=routeBarrier(hip,nearby,result.direction,floor,mode==='go'?group.targetX:null,carried);
   if(barrier&&mode==='go'){
    if(barrier.hop){result.jump=true;result.intent='hop'}
-   else{result.direction=0;result.jump=false;result.intent='blocked'}
+   else if(barrier.climb){result.climb=true;result.climbTargetId=barrier.id;result.climbDirection=result.direction;result.intent='climb'}
+   else{result.direction=0;result.jump=false;result.climb=false;result.intent='blocked'}
   }else if(barrier&&barrier.hop&&(mode==='help'||mode==='wander')){result.jump=true}
   else if(barrier&&!barrier.hop&&mode==='wander'){result.direction=-result.direction;result.intent='turn'}
  }
- if(mode==='go'&&(result.intent==='go'||result.intent==='hop')){
+ if(mode==='go'&&(result.intent==='go'||result.intent==='hop'||result.intent==='climb')){
   var recovery=stalledTravel(group,hip,tick||0);
   if(recovery==='retry'){result.jump=true;result.intent='retry'}
   if(recovery==='blocked'){result.direction=0;result.jump=false;result.intent='blocked'}
@@ -172,7 +185,7 @@ var memory=memoryOf(group),result={intent:'rest',direction:0,jump:false,activate
  if(hip.x<85)result.direction=1;else if(hip.x>2080)result.direction=-1;
  return result;
 }
-var api={decide:decide,modes:modes,personalities:personalities,isGraspable:isGraspable,planRoute:planRoute};
+var api={decide:decide,modes:modes,personalities:personalities,isGraspable:isGraspable,planRoute:planRoute,fixedBoxBounds:fixedBoxBounds};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 if(root)root.StickLabInhabitants=api;
 })(typeof window!=='undefined'?window:null);

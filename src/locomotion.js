@@ -21,7 +21,7 @@ function nudgeY(p,amount){if(!p||p.fixed)return;p.py+=clamp(amount,8)}
 function step(group,parts,command,terrain,floor,tick){
  command=command||{};parts=parts||{};
  var hip=parts.hip,chest=parts.chest,head=parts.head,feet=[parts.lf,parts.rf],knees=[parts.lk,parts.rk];
- var status={grounded:false,stepping:false,jumped:false,recovering:false,pushed:false};
+ var status={grounded:false,stepping:false,jumped:false,recovering:false,pushed:false,climbing:false};
  if(!hip||hip.fixed||!feet[0]||!feet[1])return status;
  var left=isSupported(feet[0],terrain,floor),right=isSupported(feet[1],terrain,floor);
  // Fallen residents can get back up from knees, hands or head contact too.
@@ -54,7 +54,7 @@ function step(group,parts,command,terrain,floor,tick){
   var lean=clamp(hip.x-chest.x,18);
   nudgeX(chest,clamp(lean*.012,.28)+direction*.12);
  }
- if(direction){
+ if(direction&&!command.climb){
   status.stepping=true;
   var stride=(tick||0)*.16;
   for(var k=0;k<2;k++){
@@ -69,6 +69,20 @@ function step(group,parts,command,terrain,floor,tick){
   nudgeX(hip,clamp(-forward*.12,.35));
  }
  var last=finite(group.lastJumpTick)?group.lastJumpTick:-1000;
+ if(command.climb&&direction){
+  status.climbing=true;group.motionState='climbing';
+  var climbTick=finite(group.lastClimbTick)?group.lastClimbTick:-1000;
+  if((tick||0)-climbTick>=5){
+   // Pull through the existing ragdoll joints. The hand-to-ledge hinge is
+   // created by the game layer; these are velocity changes, never teleports.
+   nudgeY(parts.hip,2.2);nudgeY(chest,2.8);
+   nudgeY(parts.ls,2.4);nudgeY(parts.rs,2.4);
+   nudgeY(parts.lh,3.1);nudgeY(parts.rh,3.1);
+   nudgeY(parts.lk,1.3);nudgeY(parts.rk,1.3);
+   nudgeX(parts.hip,direction*.72);nudgeX(chest,direction*.42);
+   group.lastClimbTick=tick||0;
+  }
+ }
  // A grounded helper nudges a nearby free object, transferring momentum by contact.
  var target=null,near=terrain||[];
  if(direction&&finite(command.pushTargetId)){

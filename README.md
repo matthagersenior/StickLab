@@ -1,12 +1,12 @@
 # StickLab v0.5.12 — Planned multi-barrier movement
 
-**Walk now plans across a destination-wide sequence of fixed barriers**, reporting an impassable wall before repeatedly driving into it and ordering grounded hops over low barriers. Shared carriers keep a two-person formation and wait for both residents to arrive together. Tall walls, climbing and routes around obstacles remain unsupported. [v0.5.12 release notes](docs/releases/v0.5.12-planned-movement.md).
+**Walk plans a sequence of low-barrier hops and can attempt a physical grip-and-pull over a narrow ledge.** Shared carriers keep a two-person formation and wait for both residents to arrive together. This bounded climb does not yet support carrying while climbing, climbing broad or angled structures, or choosing detours. [v0.5.13 release notes](docs/releases/v0.5.13-ledge-climb.md) · [v0.5.12 route-planning notes](docs/releases/v0.5.12-planned-movement.md).
 
 Physics Challenges still include Double Gate, a fourth level with two fixed barriers and an open-ended physical objective. Mobile challenge starts clear stale figure controls, explain the paused state, and hide movement arrows when no figure is selected. [v0.5.11 release notes](docs/releases/v0.5.11-double-gate.md).
 
 Grips can break under strong force, and resident status explains when an object is held, shared, carried, or dropped. [v0.5.9 grasp and carry notes](docs/releases/v0.5.9-carrying-grips.md).
 
-Go Here considers the nearest 32 objects for local decisions and scans fixed barriers across the requested straight ground route. It can plan a sequence of grounded hops over low, narrow barriers with overhead clearance, but it cannot plan detours, climb, or find routes between platforms. [v0.5.7 movement notes](docs/releases/v0.5.7-angled-obstacles.md).
+Go Here considers the nearest 32 objects for local decisions and scans fixed barriers across the requested straight ground route. It can plan grounded hops over low barriers and attempt a hand-grip climb over narrow ledges, but it cannot plan detours or find routes between platforms. [v0.5.7 movement notes](docs/releases/v0.5.7-angled-obstacles.md).
 
 
 
@@ -94,7 +94,7 @@ node --test tests/*.test.cjs
 
 GitHub Actions additionally verifies that committed generated files match the source build. The Pages app caches its hosted files for offline use in compatible browsers; the downloadable standalone HTML works without the cache.
 
-**Limits:** This is stylized game physics, not an engineering solver. Vehicle traction, impact fracture, and high-density piles use approximations; old-device FPS targets require physical-device benchmarking. Residents can plan straight ground routes across low fixed barriers and coordinate a two-person carry, but cannot detour around impassable walls, climb, navigate between platforms, or learn puzzle solutions.
+**Limits:** This is stylized game physics, not an engineering solver. Vehicle traction, impact fracture, and high-density piles use approximations; old-device FPS targets require physical-device benchmarking. Residents can plan straight ground routes, attempt low hops and narrow ledge climbs, and coordinate a two-person carry. They cannot detour around impassable walls, climb broad or angled structures, carry while climbing, navigate between platforms, or learn puzzle solutions.
 
 ## License
 
