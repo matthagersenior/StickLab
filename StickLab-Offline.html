@@ -180,6 +180,11 @@
 .controlpad .control-options{display:flex;flex-basis:100%;gap:5px}
 .controlpad .control-options button{flex:1;width:auto;min-width:0;height:34px;min-height:34px;padding:0 5px;font-size:11px;background:#315044dd;border-color:#83e0cb;color:#e1fff4;white-space:nowrap}
 .controlpad .control-options button[aria-pressed="true"]{background:#176c5a}
+@media (max-height:560px) and (orientation:landscape) and (pointer:coarse),
+       (max-width:690px) and (max-height:560px) and (orientation:landscape) {
+  .controlpad{bottom:calc(80px + env(safe-area-inset-bottom,0px))}
+  .controlpad #releaseControlMobile{min-width:44px;width:44px;height:46px}
+}
 </style></head>
 <body><div class="app">
 <aside id="sidebar" class="side" aria-label="Sandbox tools"><header class="brand"><div class="brandmark" aria-hidden="true">✳</div><div><h1>StickLab<span style="color:#83e0cb">.</span></h1><small>POCKET PHYSICS</small></div></header><div class="side-scroll">
